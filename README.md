@@ -7,7 +7,7 @@
 
 ## Description du projet
 
-[Description à compléter]
+Travail d’Étude et de Recherche (TER) portant sur la **génération algorithmique de labyrinthes dans l’esprit Pac-Man**.
 
 ## Structure du projet
 
