@@ -1,69 +1,67 @@
 # Rapport d'Activité - Jazi
 
-**Date :** 06/02/2026
-
-## Activités du jour
+## Jour 1 - 06/02/2026
 
 ### Tâches réalisées
-
 - Mise en place de la structure du projet TER
-- Analyse des contraintes pour la génération de labyrinthes type Pac-Man
+- Analyse des contraintes pour labyrinthes type Pac-Man
 - Identification des algorithmes adaptés
 
 ### Recherches effectuées
 
-#### 🎯 Contraintes identifiées pour les labyrinthes type Pac-Man
-
-- ❌ Aucun cul-de-sac (dead end)
-- ✅ Présence de cycles multiples
+**Contraintes Pac-Man :**
+- ❌ Aucun cul-de-sac
+- ✅ Cycles multiples
 - ✅ Graphe connexe
-- ✅ Jouabilité optimale
 
-#### 📚 Algorithmes adaptés recensés
+**Algorithmes recensés :**
+1. **Braid Maze** (choisi) - DFS + suppression dead ends
+2. Graph Minimum Degree ≥ 2
+3. Loop-Erased Random Walk
+4. Hybrid DFS + Forced Cycles
 
-**1. Braid Maze (recommandé - le plus classique)**
-- Principe : générer un labyrinthe parfait puis supprimer tous les dead ends
-- Chaque suppression crée un cycle
-- Très proche des labyrinthes Pac-Man
-- Citation : *"Le labyrinthe final est un braid maze, caractérisé par l'absence de culs-de-sac et la présence de cycles."*
+### Prochaine séance
+- Implémenter Braid Maze
+- Tester génération et validation
 
-**2. Graph with Minimum Degree ≥ 2**
-- Approche graphe théorique
-- Forcer chaque nœud à avoir au moins 2 voisins
-- Garantit l'absence de dead ends
-- Très défendable théoriquement
+---
 
-**3. Loop-Erased Random Walk (LERW modifié)**
-- Marche aléatoire créant des cycles
-- Modification : empêcher degré 1
-- Avantage : très naturel, variété élevée
-- Inconvénient : moins courant, plus complexe
+## Jour 2 - 13/02/2026
 
-**4. Hybrid DFS + Forced Cycles**
-- DFS pour connexité + ajout aléatoire de passages
-- Suppression explicite des dead ends
-- Simple, testable et progressif
-- Citation : *"Les cycles sont introduits volontairement afin d'éliminer les culs-de-sac et d'améliorer la jouabilité."*
+### Tâches réalisées
 
-#### 📊 Tableau comparatif
+**Modules développés (ma responsabilité) :**
+- ✅ `maze_generator.py` - Générateur Braid Maze (~200 lignes)
+- ✅ `main.py` - Script principal avec CLI
+- ✅ Export JSON structuré
 
-| Algorithme | Dead ends | Cycles | Complexité | Pac-Man |
-|------------|-----------|--------|------------|---------|
-| Braid Maze | ❌ | ✅ | ⭐⭐ | ⭐⭐⭐ |
-| Min degree ≥ 2 | ❌ | ✅ | ⭐⭐ | ⭐⭐⭐ |
-| LERW modifié | ❌ | ✅ | ⭐⭐⭐ | ⭐⭐ |
-| Cellular Automata | ❌ | ✅ | ⭐⭐⭐ | ⭐⭐ |
-| CSP | ❌ | ✅ | ⭐⭐⭐⭐ | ⭐⭐⭐ |
-| Hybrid DFS + cycles | ❌ | ✅ | ⭐⭐ | ⭐⭐⭐ |
+**Collaboration :**
+- Division tâches : génération (Jazi) / visualisation + tests (Montasser)
+- Intégration modules via imports Python
 
-### Difficultés rencontrées
+### Algorithme Braid Maze
 
-- Nécessité de bien différencier labyrinthes parfaits (avec dead ends) vs labyrinthes avec cycles
-- Clarification des contraintes : les labyrinthes parfaits sont exclus en sortie finale
+1. Génération parfaite (DFS)
+2. Élimination des dead ends
+3. Export JSON
 
-### Prévisions pour la prochaine séance
+**Structure données :**
+```python
+walls = {(x, y, direction): bool}  # N, S, E, W
+```
 
-- Approfondir l'algorithme Braid Maze (priorité)
-- Expérimenter avec Hybrid DFS + Forced Cycles
-- Commencer l'implémentation d'un prototype simple
-- Tester la génération et valider l'absence de dead ends
+### Résultats
+
+**Test 12x12 :**
+- Connexité : 100%
+- Culs-de-sac : 0
+- Score : 84.4/100
+
+### Difficultés
+- Gestion bidirectionnelle des murs → fonction `_remove_wall()`
+- Degré moyen faible (2.22) → amélioration nécessaire
+
+### Prochaine séance
+- Optimiser degré moyen (objectif 2.5-3)
+- Paramètres de contrôle de densité
+- Explorer algorithmes alternatifs
