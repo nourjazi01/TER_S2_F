@@ -9,6 +9,85 @@
 - **`ascii_renderer.py`** : Rendu ASCII des labyrinthes dans la console
 - **`maze_analyzer.py`** : Tests et analyses de qualification des labyrinthes
 
+## 🚀 Utilisation
+
+### Génération d'un labyrinthe
+
+```bash
+python main.py [largeur] [hauteur]
+```
+
+**Exemples :**
+```bash
+# Labyrinthe 15x15 (par défaut)
+python main.py
+
+# Labyrinthe 20x10
+python main.py 20 10
+
+# Petit labyrinthe 8x8
+python main.py 8 8
+```
+
+### Utilisation des modules individuels
+
+**Génération seule :**
+```bash
+python maze_generator.py
+```
+→ Crée `maze_output.json`
+
+**Affichage ASCII :**
+```bash
+python ascii_renderer.py [fichier.json]
+```
+
+**Analyse qualité :**
+```bash
+python maze_analyzer.py [fichier.json]
+```
+
+## 📊 Format JSON du labyrinthe
+
+Le labyrinthe est exporté au format JSON avec la structure suivante :
+
+```json
+{
+  "metadata": {
+    "width": 10,
+    "height": 10,
+    "type": "braid_maze",
+    "algorithm": "DFS + dead-end removal"
+  },
+  "cells": {
+    "0,0": {
+      "x": 0,
+      "y": 0,
+      "passages": ["E", "S"],
+      "degree": 2
+    },
+    "1,0": {
+      "x": 1,
+      "y": 0,
+      "passages": ["W", "E", "S"],
+      "degree": 3
+    }
+    // ... autres cellules
+  }
+}
+```
+
+### Détails du format
+
+- **metadata** : informations sur le labyrinthe
+  - `width`, `height` : dimensions
+  - `type` : type d'algorithme utilisé
+  - `algorithm` : description de l'algorithme
+
+- **cells** : dictionnaire de toutes les cellules
+  - Clé : `"x,y"` (coordonnées)
+  - `passages` : liste des directions de passages ouverts (`N`, `S`, `E`, `W`)
+  - `degree` : nombre de passages ouverts (0-4)
 
 ## 🎯 Algorithme : Braid Maze
 
@@ -25,10 +104,10 @@
    - Création de cycles
 
 3. **Résultat : Braid Maze**
-   -  Aucun cul-de-sac (dead end)
-   -  Présence de cycles multiples
-   -  Graphe connexe
-   -  Adapté au gameplay Pac-Man
+   - ❌ Aucun cul-de-sac (dead end)
+   - ✅ Présence de cycles multiples
+   - ✅ Graphe connexe
+   - ✅ Adapté au gameplay Pac-Man
 
 ## 🧪 Tests de qualification
 
