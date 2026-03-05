@@ -86,3 +86,125 @@
 - Visualisation graphique (Pygame)
 - Tests de performance
 
+---
+
+## Jour 3 - 05/03/2026
+
+### Tâches réalisées
+
+**API Web Flask (ma responsabilité) :**
+- ✅ `app.py` - Serveur Flask avec API REST (~150 lignes)
+- ✅ 4 endpoints HTTP fonctionnels
+- ✅ Support paramètres de génération via query strings
+- ✅ Templates HTML pour interface web
+- ✅ Gestion configuration PORT pour cloud
+
+**Endpoints API développés :**
+
+1. **GET /** - Interface web accueil
+   - Template HTML avec formulaire
+   - Documentation API interactive
+
+2. **GET /api/maze** - Récupération maze courant
+   - Format JSON structuré
+   - Métadonnées incluses
+
+3. **POST /api/generate-maze** - Génération nouveau maze
+   - Paramètres : width, height, ghost_house, playability
+   - Validation entrées utilisateur
+   - Retour JSON avec maze généré
+
+4. **GET /api/maze-info** - Informations détaillées
+   - Dimensions, ghost house, playability
+   - Statistiques du maze actuel
+
+### Architecture API
+
+**Structure requête/réponse :**
+```python
+# Génération maze
+POST /api/generate-maze
+Params: width=15, height=15, ghost_house=true
+
+→ Response 200 OK
+{
+  "maze": {...walls...},
+  "width": 15,
+  "height": 15,
+  "ghost_house": true,
+  "playability": "medium"
+}
+```
+
+**Gestion d'état :**
+- Variable globale `current_maze` pour stockage maze actuel
+- Initialisation au démarrage avec maze par défaut
+- Mise à jour à chaque génération
+
+### Intégration production
+
+**Configuration serveur :**
+- Développement : Flask dev server (port 5000)
+- Production : Gunicorn WSGI server
+- Support variable d'environnement `PORT` pour Render
+
+**Validation API :**
+- 12 tests API automatisés (pytest-flask)
+- Tests codes statut HTTP (200, 400, 404)
+- Tests format JSON réponses
+- Tests validation paramètres
+
+### Collaboration avec déploiement
+
+**Fourni à Jazi pour CI/CD :**
+- Liste dépendances Python (Flask 3.0.0, Werkzeug 3.0.1)
+- Points d'entrée pour tests (app fixture pytest)
+- Documentation endpoints pour tests E2E
+- Health check endpoint pour monitoring Render
+
+### Résultats
+
+**Tests API locaux :**
+- 12/12 tests passent (100%)
+- Temps réponse : <50ms génération
+- Validation JSON : OK
+
+**Performance :**
+- Génération 15x15 : ~10ms
+- Génération 30x30 : ~40ms
+- Mémoire : <50MB
+
+### Difficultés rencontrées
+
+**Problème 1 : Variables globales Flask**
+- Cause : current_maze modifiée sans déclaration global
+- Solution : Ajout `global current_maze` dans fonctions
+
+**Problème 2 : Validation paramètres**
+- Cause : Types mixtes (string/int) des query params
+- Solution : Conversion explicite avec gestion erreurs
+
+**Problème 3 : CORS en développement**
+- Cause : Appels API depuis différents ports
+- Solution : Configuration Flask pour accepter requêtes locales
+
+### Templates HTML créés
+
+- `templates/index.html` - Page accueil avec formulaire
+- Interface utilisateur simple pour démo
+- Liens vers API endpoints
+
+### Stack technique API
+
+- **Framework** : Flask 3.0.0
+- **WSGI** : Gunicorn 21.2.0 (production)
+- **Templating** : Jinja2 (inclus Flask)
+- **Serialization** : JSON natif Python
+- **Testing** : pytest-flask 1.3.0
+
+### Prochaines étapes
+- Améliorer interface HTML (CSS/JavaScript)
+- Ajouter visualisation maze côté client
+- Monitoring métriques API (temps réponse, usage)
+- Documentation OpenAPI/Swagger possible
+
