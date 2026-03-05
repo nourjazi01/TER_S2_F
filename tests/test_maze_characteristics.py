@@ -27,9 +27,9 @@ class TestMazeConnectivity:
         
         assert connectivity['is_connected'] == True, \
             "Le labyrinthe devrait être connexe"
-        assert connectivity['connected_cells'] == connectivity['total_cells'], \
+        assert connectivity['reachable_cells'] == connectivity['total_cells'], \
             "Toutes les cellules devraient être connectées"
-        assert connectivity['ratio'] == 1.0, \
+        assert connectivity['connectivity_ratio'] == 1.0, \
             "Le ratio de connectivité devrait être 100%"
             
     def test_large_maze_connectivity(self):
@@ -41,7 +41,7 @@ class TestMazeConnectivity:
         connectivity = analyzer.check_connectivity()
         
         assert connectivity['is_connected'] == True
-        assert connectivity['ratio'] == 1.0
+        assert connectivity['connectivity_ratio'] == 1.0
         
     def test_small_maze_connectivity(self):
         """Test : un petit labyrinthe doit être connexe."""
@@ -63,11 +63,11 @@ class TestMazeDeadEnds:
         maze_data = generator.generate()
         
         analyzer = MazeAnalyzer(maze_data)
-        dead_ends = analyzer.find_dead_ends()
+        dead_ends = analyzer.analyze_dead_ends()
         
-        assert dead_ends['count'] == 0, \
-            f"Attendu 0 culs-de-sac, trouvé {dead_ends['count']}"
-        assert dead_ends['ratio'] == 0.0, \
+        assert dead_ends['dead_end_count'] == 0, \
+            f"Attendu 0 culs-de-sac, trouvé {dead_ends['dead_end_count']}"
+        assert dead_ends['dead_end_ratio'] == 0.0, \
             "Le ratio de culs-de-sac devrait être 0%"
             
     def test_multiple_mazes_no_dead_ends(self):
@@ -77,10 +77,10 @@ class TestMazeDeadEnds:
             maze_data = generator.generate()
             
             analyzer = MazeAnalyzer(maze_data)
-            dead_ends = analyzer.find_dead_ends()
+            dead_ends = analyzer.analyze_dead_ends()
             
-            assert dead_ends['count'] == 0, \
-                f"Maze {i+1} a {dead_ends['count']} culs-de-sac (attendu 0)"
+            assert dead_ends['dead_end_count'] == 0, \
+                f"Maze {i+1} a {dead_ends['dead_end_count']} culs-de-sac (attendu 0)"
                 
     def test_dead_end_ratio_parameter(self):
         """Test : le paramètre dead_end_ratio doit être respecté."""
@@ -89,9 +89,9 @@ class TestMazeDeadEnds:
         maze_data = generator.generate()
         
         analyzer = MazeAnalyzer(maze_data)
-        dead_ends = analyzer.find_dead_ends()
+        dead_ends = analyzer.analyze_dead_ends()
         
-        assert dead_ends['count'] == 0
+        assert dead_ends['dead_end_count'] == 0
 
 
 class TestMazeDegreeDistribution:
@@ -103,12 +103,12 @@ class TestMazeDegreeDistribution:
         maze_data = generator.generate()
         
         analyzer = MazeAnalyzer(maze_data)
-        distribution = analyzer.calculate_degree_distribution()
+        distribution = analyzer.analyze_degree_distribution()
         
         assert 'average_degree' in distribution
         assert 'min_degree' in distribution
         assert 'max_degree' in distribution
-        assert 'distribution' in distribution
+        assert 'degree_distribution' in distribution
         
     def test_no_degree_1_in_braid_maze(self):
         """Test : un Braid Maze ne devrait pas avoir de cellules de degré 1."""
@@ -116,10 +116,10 @@ class TestMazeDegreeDistribution:
         maze_data = generator.generate()
         
         analyzer = MazeAnalyzer(maze_data)
-        distribution = analyzer.calculate_degree_distribution()
+        distribution = analyzer.analyze_degree_distribution()
         
         # Degré 1 = cul-de-sac
-        degree_1_count = distribution['distribution'].get(1, 0)
+        degree_1_count = distribution['degree_distribution'].get(1, 0)
         assert degree_1_count == 0, \
             f"Trouvé {degree_1_count} cellules de degré 1 (culs-de-sac)"
             
@@ -129,7 +129,7 @@ class TestMazeDegreeDistribution:
         maze_data = generator.generate()
         
         analyzer = MazeAnalyzer(maze_data)
-        distribution = analyzer.calculate_degree_distribution()
+        distribution = analyzer.analyze_degree_distribution()
         
         # Pour un Braid Maze, degré moyen devrait être >= 2.0
         # (un labyrinthe parfait a un degré moyen de 2.0)
@@ -142,7 +142,7 @@ class TestMazeDegreeDistribution:
         maze_data = generator.generate()
         
         analyzer = MazeAnalyzer(maze_data)
-        distribution = analyzer.calculate_degree_distribution()
+        distribution = analyzer.analyze_degree_distribution()
         
         assert distribution['min_degree'] >= 2, \
             f"Le degré minimum est {distribution['min_degree']}, attendu >= 2"
@@ -162,7 +162,7 @@ class TestMazeQuality:
         assert 'connectivity_score' in quality
         assert 'dead_end_score' in quality
         assert 'cycle_score' in quality
-        assert 'global_score' in quality
+        assert 'overall_score' in quality
         
     def test_quality_score_range(self):
         """Test : les scores doivent être entre 0 et 100."""
@@ -175,7 +175,7 @@ class TestMazeQuality:
         assert 0 <= quality['connectivity_score'] <= 100
         assert 0 <= quality['dead_end_score'] <= 100
         assert 0 <= quality['cycle_score'] <= 100
-        assert 0 <= quality['global_score'] <= 100
+        assert 0 <= quality['overall_score'] <= 100
         
     def test_high_quality_braid_maze(self):
         """Test : un Braid Maze devrait avoir un bon score."""
@@ -186,8 +186,8 @@ class TestMazeQuality:
         quality = analyzer.evaluate_pacman_quality()
         
         # Un Braid Maze devrait avoir un score global >= 80
-        assert quality['global_score'] >= 80.0, \
-            f"Score global {quality['global_score']:.1f}, attendu >= 80"
+        assert quality['overall_score'] >= 80.0, \
+            f"Score global {quality['overall_score']:.1f}, attendu >= 80"
             
         # Connexité parfaite
         assert quality['connectivity_score'] == 100.0
@@ -204,7 +204,7 @@ class TestGhostHouse:
         generator = MazeGenerator(15, 15, ghost_house=True)
         maze_data = generator.generate()
         
-        assert maze_data['metadata']['has_ghost_house'] == True
+        assert maze_data['metadata']['ghost_house'] == True
         
     def test_ghost_house_cells_marked(self):
         """Test : les cellules de la ghost house doivent être marquées."""
@@ -224,7 +224,7 @@ class TestGhostHouse:
         generator = MazeGenerator(15, 15, ghost_house=False)
         maze_data = generator.generate()
         
-        assert maze_data['metadata']['has_ghost_house'] == False
+        assert maze_data['metadata']['ghost_house'] == False
 
 
 class TestMazeConsistency:
@@ -246,7 +246,7 @@ class TestMazeConsistency:
         
         for cell_id, cell in maze_data['cells'].items():
             assert 'passages' in cell, f"Cellule {cell_id} sans passages"
-            assert isinstance(cell['passages'], dict)
+            assert isinstance(cell['passages'], list)
             
     def test_passages_are_bidirectional(self):
         """Test : les passages doivent être bidirectionnels."""
@@ -260,11 +260,11 @@ class TestMazeConsistency:
             x, y = cell['x'], cell['y']
             
             # Si passage vers le nord
-            if cell['passages'].get('N', False):
+            if 'N' in cell['passages']:
                 if y > 0:
                     north_cell_id = f"{x},{y-1}"
                     north_cell = cells[north_cell_id]
-                    assert north_cell['passages'].get('S', False), \
+                    assert 'S' in north_cell['passages'], \
                         f"Passage nord de {cell_id} non réciproque"
 
 
