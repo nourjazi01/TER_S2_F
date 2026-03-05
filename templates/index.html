@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pac-Man Maze Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        header {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .control-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        label {
+            font-weight: bold;
+            color: #333;
+            min-width: 60px;
+        }
+
+        input[type="number"] {
+            width: 80px;
+            padding: 8px;
+            border: 2px solid #1e3c72;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+
+        button {
+            padding: 10px 25px;
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            color: #000;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 1em;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .loading {
+            display: none;
+            color: #1e3c72;
+            font-weight: bold;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .main-content {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .maze-container {
+            flex: 1;
+            min-width: 300px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background: #000;
+            border: 3px solid #1e3c72;
+            image-rendering: pixelated;
+        }
+
+        .info-panel {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 10px;
+            min-width: 250px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .info-item {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #1e3c72;
+            font-size: 0.9em;
+            text-transform: uppercase;
+        }
+
+        .info-value {
+            font-size: 1.3em;
+            color: #ffd700;
+            margin-top: 5px;
+        }
+
+        .legend {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 5px;
+        }
+
+        .legend-title {
+            font-weight: bold;
+            color: #1e3c72;
+            margin-bottom: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+        }
+
+        .legend-color.wall {
+            background: #00f;
+        }
+
+        .legend-color.passage {
+            background: #000;
+        }
+
+        .legend-color.tunnel {
+            background: #ff00ff;
+        }
+
+        .legend-color.ghost {
+            background: #ff6666;
+        }
+
+        .advanced-controls {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            display: none;
+        }
+
+        .advanced-controls.show {
+            display: block;
+        }
+
+        .advanced-title {
+            font-weight: bold;
+            color: #1e3c72;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .slider-group {
+            margin-bottom: 15px;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .slider-label-text {
+            font-weight: bold;
+            color: #1e3c72;
+            font-size: 0.9em;
+        }
+
+        .slider-value {
+            background: #ffd700;
+            color: #000;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #ffd700;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #ffd700;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .playability-preset {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .preset-btn {
+            padding: 8px 15px;
+            border: 2px solid #1e3c72;
+            background: #fff;
+            color: #1e3c72;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .preset-btn:hover {
+            background: #1e3c72;
+            color: #fff;
+        }
+
+        .preset-btn.active {
+            background: #ffd700;
+            color: #000;
+            border-color: #ffd700;
+        }
+
+        .toggle-advanced {
+            background: #1e3c72;
+            color: #fff;
+            padding: 8px 15px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            margin-left: auto;
+        }
+
+        @media (max-width: 900px) {
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .main-content {
+                flex-direction: column;
+            }
+
+            .info-panel {
+                min-width: auto;
+            }
+        }
+
+        .error {
+            background: #ff6b6b;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🟡 PAC-MAN MAZE 🟡</h1>
+            <p class="subtitle">Générateur de Labyrinthes Interactif</p>
+        </header>
+
+        <div class="error" id="error"></div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="width">Largeur:</label>
+                <input type="number" id="width" value="15" min="5" max="50">
+            </div>
+            <div class="control-group">
+                <label for="height">Hauteur:</label>
+                <input type="number" id="height" value="15" min="5" max="50">
+            </div>
+            <button id="generateBtn">Générer Labyrinthe</button>
+            <button class="toggle-advanced" id="toggleAdvanced">⚙️ Paramètres</button>
+            <span class="loading" id="loading">⏳ Génération en cours...</span>
+        </div>
+
+        <div class="advanced-controls" id="advancedControls">
+            <div class="advanced-title">🎮 Paramètres de Jouabilité</div>
+            
+            <div class="playability-preset">
+                <button class="preset-btn active" data-preset="easy">🟢 Facile</button>
+                <button class="preset-btn" data-preset="medium">🟡 Moyen</button>
+                <button class="preset-btn" data-preset="hard">🔴 Difficile</button>
+                <button class="preset-btn" data-preset="custom">⚙️ Personnalisé</button>
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span class="slider-label-text">Jouabilité Générale</span>
+                    <span class="slider-value" id="playabilityValue">0.5</span>
+                </div>
+                <input type="range" id="playabilitySlider" min="0" max="1" step="0.1" value="0.5">
+                <small style="color: #666;">0 = Beaucoup de cycles | 1 = Peu de cycles</small>
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span class="slider-label-text">Ratio de Culs-de-sac</span>
+                    <span class="slider-value" id="deadEndValue">0.0</span>
+                </div>
+                <input type="range" id="deadEndSlider" min="0" max="1" step="0.1" value="0.0">
+                <small style="color: #666;">0 = Aucun dead end | 1 = Tous les dead ends</small>
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span class="slider-label-text">Intensité des Cycles</span>
+                    <span class="slider-value" id="cycleValue">0.5</span>
+                </div>
+                <input type="range" id="cycleSlider" min="0" max="1" step="0.1" value="0.5">
+                <small style="color: #666;">0 = Peu de cycles | 1 = Beaucoup de cycles</small>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="maze-container">
+                <canvas id="mazeCanvas"></canvas>
+            </div>
+            <div class="info-panel">
+                <div class="info-item">
+                    <div class="info-label">Dimensions</div>
+                    <div class="info-value" id="infoDimensions">15 x 15</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Type</div>
+                    <div class="info-value" id="infoType">Braid Maze</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Cellules</div>
+                    <div class="info-value" id="infoCells">225</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Tunnels</div>
+                    <div class="info-value" id="infoTunnels">✓ Activés</div>
+                </div>
+                <div class="legend">
+                    <div class="legend-title">Légende</div>
+                    <div class="legend-item">
+                        <div class="legend-color wall"></div>
+                        <span>Murs</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color passage"></div>
+                        <span>Passages</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color tunnel"></div>
+                        <span>Tunnel Wrap-Around</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color ghost"></div>
+                        <span>Ghost House</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        // Configuration
+        const CELL_SIZE = 30; // pixels par cellule
+        const WALL_COLOR = '#0a0aff';
+        const PASSAGE_COLOR = '#000000';
+        const TUNNEL_COLOR = '#ff00ff';
+        const GHOST_COLOR = '#ff6666';
+        const GRID_COLOR = '#1a1a2e';
+
+        let canvas, ctx;
+        let currentMaze = null;
+        let currentPreset = 'easy';
+
+        // Initialisation
+        function init() {
+            canvas = document.getElementById('mazeCanvas');
+            ctx = canvas.getContext('2d');
+            
+            document.getElementById('generateBtn').addEventListener('click', generateMaze);
+            document.getElementById('toggleAdvanced').addEventListener('click', toggleAdvanced);
+            
+            // Event listeners pour les sliders
+            document.getElementById('playabilitySlider').addEventListener('input', updatePlayabilityValue);
+            document.getElementById('deadEndSlider').addEventListener('input', updateDeadEndValue);
+            document.getElementById('cycleSlider').addEventListener('input', updateCycleValue);
+            
+            // Event listeners pour les presets
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    setPreset(this.dataset.preset);
+                });
+            });
+            
+            // Générer un labyrinthe par défaut au chargement
+            generateMaze();
+        }
+
+        function toggleAdvanced() {
+            document.getElementById('advancedControls').classList.toggle('show');
+        }
+
+        function setPreset(preset) {
+            currentPreset = preset;
+            
+            // Mettre à jour les boutons actifs
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-preset="${preset}"]`).classList.add('active');
+            
+            // Appliquer les paramètres du preset
+            switch(preset) {
+                case 'easy':
+                    // Facile: beaucoup de cycles, peu de dead ends
+                    document.getElementById('playabilitySlider').value = 0.2;
+                    document.getElementById('deadEndSlider').value = 0.0;
+                    document.getElementById('cycleSlider').value = 0.8;
+                    break;
+                case 'medium':
+                    // Moyen: équilibre
+                    document.getElementById('playabilitySlider').value = 0.5;
+                    document.getElementById('deadEndSlider').value = 0.0;
+                    document.getElementById('cycleSlider').value = 0.5;
+                    break;
+                case 'hard':
+                    // Difficile: peu de cycles, plus linéaire
+                    document.getElementById('playabilitySlider').value = 0.9;
+                    document.getElementById('deadEndSlider').value = 0.2;
+                    document.getElementById('cycleSlider').value = 0.2;
+                    break;
+                case 'custom':
+                    // Personnalisé: ne rien changer
+                    return;
+            }
+            
+            // Mettre à jour les valeurs affichées
+            updatePlayabilityValue();
+            updateDeadEndValue();
+            updateCycleValue();
+        }
+
+        function updatePlayabilityValue() {
+            const value = parseFloat(document.getElementById('playabilitySlider').value).toFixed(1);
+            document.getElementById('playabilityValue').textContent = value;
+            setPreset('custom');
+        }
+
+        function updateDeadEndValue() {
+            const value = parseFloat(document.getElementById('deadEndSlider').value).toFixed(1);
+            document.getElementById('deadEndValue').textContent = value;
+            setPreset('custom');
+        }
+
+        function updateCycleValue() {
+            const value = parseFloat(document.getElementById('cycleSlider').value).toFixed(1);
+            document.getElementById('cycleValue').textContent = value;
+            setPreset('custom');
+        }
+
+        async function generateMaze() {
+            const width = parseInt(document.getElementById('width').value);
+            const height = parseInt(document.getElementById('height').value);
+            const playability = parseFloat(document.getElementById('playabilitySlider').value);
+            const dead_end_ratio = parseFloat(document.getElementById('deadEndSlider').value);
+            const cycle_intensity = parseFloat(document.getElementById('cycleSlider').value);
+            
+            // Validation
+            if (width < 5 || height < 5 || width > 50 || height > 50) {
+                showError('Dimensions invalides (5-50)');
+                return;
+            }
+
+            showLoading(true);
+            hideError();
+
+            try {
+                const response = await axios.post('/api/generate-maze', {
+                    width: width,
+                    height: height,
+                    playability: playability,
+                    dead_end_ratio: dead_end_ratio,
+                    cycle_intensity: cycle_intensity
+                });
+
+                if (response.data.success) {
+                    currentMaze = response.data.maze;
+                    
+                    // Mettre à jour le canvas
+                    resizeCanvas(width, height);
+                    drawMaze(currentMaze);
+                    
+                    // Mettre à jour les infos
+                    updateInfo(response.data.maze);
+                } else {
+                    showError(response.data.error);
+                }
+            } catch (error) {
+                showError('Erreur lors de la génération: ' + error.message);
+                console.error(error);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function resizeCanvas(width, height) {
+            canvas.width = width * CELL_SIZE;
+            canvas.height = height * CELL_SIZE;
+        }
+
+        function drawMaze(mazeData) {
+            if (!mazeData || !mazeData.cells) return;
+
+            const cells = mazeData.cells;
+            const width = mazeData.metadata.width;
+            const height = mazeData.metadata.height;
+
+            // Fond noir
+            ctx.fillStyle = PASSAGE_COLOR;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Identifier les tunnels
+            const tunnelCells = new Set();
+            for (let y = 0; y < height; y++) {
+                const cellLeft = cells[`0,${y}`];
+                const cellRight = cells[`${width - 1},${y}`];
+                
+                if (cellLeft && cellLeft.passages.includes('W')) {
+                    tunnelCells.add(`0,${y}`);
+                }
+                if (cellRight && cellRight.passages.includes('E')) {
+                    tunnelCells.add(`${width - 1},${y}`);
+                }
+            }
+
+            // Dessiner les cellules
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const cellKey = `${x},${y}`;
+                    const cell = cells[cellKey];
+                    
+                    if (!cell) continue;
+
+                    const isGhost = cell.is_ghost_house;
+                    const isTunnel = tunnelCells.has(cellKey);
+                    
+                    // Couleur de la cellule
+                    let cellColor = PASSAGE_COLOR;
+                    if (isGhost) {
+                        cellColor = GHOST_COLOR;
+                    } else if (isTunnel) {
+                        cellColor = TUNNEL_COLOR;
+                    }
+
+                    // Dessiner la cellule
+                    ctx.fillStyle = cellColor;
+                    ctx.fillRect(x * CELL_SIZE + 1, y * CELL_SIZE + 1, CELL_SIZE - 2, CELL_SIZE - 2);
+
+                    // Dessiner les murs
+                    ctx.strokeStyle = WALL_COLOR;
+                    ctx.lineWidth = 2;
+
+                    // Mur nord
+                    if (!cell.passages.includes('N')) {
+                        ctx.beginPath();
+                        ctx.moveTo(x * CELL_SIZE, y * CELL_SIZE);
+                        ctx.lineTo((x + 1) * CELL_SIZE, y * CELL_SIZE);
+                        ctx.stroke();
+                    }
+
+                    // Mur sud
+                    if (!cell.passages.includes('S')) {
+                        ctx.beginPath();
+                        ctx.moveTo(x * CELL_SIZE, (y + 1) * CELL_SIZE);
+                        ctx.lineTo((x + 1) * CELL_SIZE, (y + 1) * CELL_SIZE);
+                        ctx.stroke();
+                    }
+
+                    // Mur est
+                    if (!cell.passages.includes('E')) {
+                        ctx.beginPath();
+                        ctx.moveTo((x + 1) * CELL_SIZE, y * CELL_SIZE);
+                        ctx.lineTo((x + 1) * CELL_SIZE, (y + 1) * CELL_SIZE);
+                        ctx.stroke();
+                    }
+
+                    // Mur ouest
+                    if (!cell.passages.includes('W')) {
+                        ctx.beginPath();
+                        ctx.moveTo(x * CELL_SIZE, y * CELL_SIZE);
+                        ctx.lineTo(x * CELL_SIZE, (y + 1) * CELL_SIZE);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function updateInfo(mazeData) {
+            const metadata = mazeData.metadata;
+            const cellCount = Object.keys(mazeData.cells).length;
+
+            document.getElementById('infoDimensions').textContent = 
+                `${metadata.width} x ${metadata.height}`;
+            
+            document.getElementById('infoType').textContent = metadata.type;
+            
+            document.getElementById('infoCells').textContent = cellCount;
+            
+            document.getElementById('infoTunnels').textContent = 
+                metadata.has_warp_tunnels ? '✓ Activés' : '✗ Désactivés';
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').classList.toggle('show', show);
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = '❌ ' + message;
+            errorDiv.classList.add('show');
+        }
+
+        function hideError() {
+            document.getElementById('error').classList.remove('show');
+        }
+
+        // Démarrer
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

@@ -20,7 +20,9 @@ class MazeGenerator:
     5. Résultat : labyrinthe avec cycles, adapté au gameplay Pac-Man
     """
     
-    def __init__(self, width: int, height: int, ghost_house: bool = True):
+    def __init__(self, width: int, height: int, ghost_house: bool = True, 
+                 playability: float = 0.5, dead_end_ratio: float = 0.0,
+                 cycle_intensity: float = 0.5):
         """
         Initialise le générateur.
         
@@ -28,10 +30,24 @@ class MazeGenerator:
             width: Largeur du labyrinthe (nombre de cellules)
             height: Hauteur du labyrinthe (nombre de cellules)
             ghost_house: Si True, crée une zone centrale "ghost house"
+            playability: Niveau de jouabilité (0.0-1.0)
+                - 0.0 = Très facile (beaucoup de cycles, peu de choix)
+                - 0.5 = Moyen (équilibre)
+                - 1.0 = Très difficile (peu de cycles, plus linéaire)
+            dead_end_ratio: Proportion de culs-de-sac tolérés (0.0-1.0)
+                - 0.0 = Aucun dead end (Braid Maze pur)
+                - 1.0 = Maintenir les dead ends
+            cycle_intensity: Intensité des cycles supplémentaires (0.0-1.0)
+                - 0.0 = Pas de cycles additionnels
+                - 1.0 = Beaucoup de cycles
         """
         self.width = width
         self.height = height
         self.ghost_house = ghost_house
+        self.playability = max(0.0, min(1.0, playability))  # Clamp 0-1
+        self.dead_end_ratio = max(0.0, min(1.0, dead_end_ratio))  # Clamp 0-1
+        self.cycle_intensity = max(0.0, min(1.0, cycle_intensity))  # Clamp 0-1
+        
         # Murs : dict[(x,y), direction] -> bool (True = mur fermé, False = passage)
         # Directions: 'N' (nord), 'S' (sud), 'E' (est), 'W' (ouest)
         self.walls = {}
@@ -80,11 +96,17 @@ class MazeGenerator:
                 # Mur sud (sauf dernière ligne)
                 if y < self.height - 1:
                     self.walls[(x, y, 'S')] = True
-                # Mur est (sauf dernière colonne)
+                # Mur est (y compris pour wrap-around)
                 if x < self.width - 1:
                     self.walls[(x, y, 'E')] = True
-                # Mur ouest (sauf première colonne)
+                else:
+                    # Bord droit: permet wrap-around
+                    self.walls[(x, y, 'E')] = True
+                # Mur ouest (y compris pour wrap-around)
                 if x > 0:
+                    self.walls[(x, y, 'W')] = True
+                else:
+                    # Bord gauche: permet wrap-around
                     self.walls[(x, y, 'W')] = True
     
     def _get_neighbors(self, x: int, y: int) -> List[Tuple[int, int, str]]:
@@ -209,19 +231,33 @@ class MazeGenerator:
     
     def _remove_dead_ends(self):
         """
-        Supprime tous les culs-de-sac en ouvrant des passages supplémentaires.
+        Supprime les culs-de-sac en fonction du ratio dead_end_ratio.
         Chaque suppression crée un cycle, transformant le labyrinthe parfait en Braid Maze.
+        
+        Le ratio dead_end_ratio contrôle combien de dead ends à supprimer:
+        - 0.0 = Supprimer tous les dead ends (Braid Maze pur)
+        - 1.0 = Garder tous les dead ends (Perfect Maze)
         """
         iteration = 0
-        while True:
+        max_iterations = 100
+        
+        while iteration < max_iterations:
             dead_ends = self._find_dead_ends()
             
             if not dead_ends:
                 break  # Plus de culs-de-sac
             
+            # Calculer combien de dead ends à garder
+            target_dead_ends = int(len(dead_ends) * self.dead_end_ratio)
+            
+            # Si on a atteint le ratio cible, arrêter
+            if len(dead_ends) <= target_dead_ends:
+                break
+            
             iteration += 1
             
-            for x, y in dead_ends:
+            # Supprimer les dead ends en excès
+            for x, y in dead_ends[:len(dead_ends) - target_dead_ends]:
                 # Trouver les voisins avec un mur fermé
                 neighbors = self._get_neighbors(x, y)
                 closed_neighbors = [
@@ -233,6 +269,42 @@ class MazeGenerator:
                 if closed_neighbors:
                     # Ouvrir un mur aléatoire pour créer un cycle
                     nx, ny, direction = random.choice(closed_neighbors)
+                    self._remove_wall(x, y, nx, ny, direction)
+    
+    def _add_extra_cycles(self):
+        """
+        Ajoute des cycles supplémentaires en fonction de cycle_intensity.
+        Cela augmente la jouabilité en créant plus de chemins alternatifs.
+        """
+        if self.cycle_intensity <= 0.0:
+            return
+        
+        # Nombre de cycles additionnels à créer
+        total_cells = (self.width * self.height) - len(self.ghost_house_zone)
+        extra_cycles = int(total_cells * self.cycle_intensity * 0.05)  # Max 5% de cycles additionnels
+        
+        for _ in range(extra_cycles):
+            # Choisir une cellule aléatoire
+            while True:
+                x = random.randint(0, self.width - 1)
+                y = random.randint(0, self.height - 1)
+                
+                # Vérifier que ce n'est pas la ghost house
+                if not self._is_ghost_house(x, y):
+                    break
+            
+            # Trouver les murs fermés
+            neighbors = self._get_neighbors(x, y)
+            closed_neighbors = [
+                (nx, ny, direction)
+                for nx, ny, direction in neighbors
+                if (x, y, direction) in self.walls and self.walls[(x, y, direction)]
+            ]
+            
+            if closed_neighbors and random.random() < 0.5:
+                # Ouvrir un mur aléatoire
+                nx, ny, direction = random.choice(closed_neighbors)
+                if not self._is_ghost_house(nx, ny):
                     self._remove_wall(x, y, nx, ny, direction)
     
     def _create_ghost_house(self):
@@ -274,9 +346,26 @@ class MazeGenerator:
         if top_y > 0:
             self._remove_wall(center_x, top_y, center_x, top_y - 1, 'N')
     
+    def _create_horizontal_warp_tunnels(self):
+        """
+        Crée un seul tunnel de wrap-around horizontal au milieu du labyrinthe.
+        Le tunnel relie le bord gauche au bord droit au centre vertical.
+        """
+        # Créer un tunnel au milieu vertical du labyrinthe
+        y = self.height // 2
+        
+        # Ouvrir le passage ouest pour la cellule la plus à gauche (x=0)
+        if (0, y, 'W') in self.walls:
+            self.walls[(0, y, 'W')] = False
+        
+        # Ouvrir le passage est pour la cellule la plus à droite (x=width-1)
+        if (self.width - 1, y, 'E') in self.walls:
+            self.walls[(self.width - 1, y, 'E')] = False
+    
     def generate(self) -> Dict:
         """
-        Génère un labyrinthe de type Braid Maze avec ghost house optionnelle.
+        Génère un labyrinthe de type Braid Maze avec ghost house optionnelle, tunnels horizontaux,
+        et en respectant les paramètres de jouabilité.
         
         Returns:
             Dictionnaire représentant le labyrinthe (exportable en JSON)
@@ -288,10 +377,16 @@ class MazeGenerator:
         if self.ghost_house:
             self._create_ghost_house()
         
-        # Étape 3 : Supprimer tous les dead ends
+        # Étape 3 : Supprimer les dead ends selon le ratio
         self._remove_dead_ends()
         
-        # Étape 4 : Exporter au format JSON
+        # Étape 4 : Ajouter des cycles supplémentaires selon cycle_intensity
+        self._add_extra_cycles()
+        
+        # Étape 5 : Ajouter des tunnels de wrap-around horizontaux
+        self._create_horizontal_warp_tunnels()
+        
+        # Étape 6 : Exporter au format JSON
         return self.to_json()
     
     def to_json(self) -> Dict:
@@ -328,9 +423,14 @@ class MazeGenerator:
                 "width": self.width,
                 "height": self.height,
                 "type": "braid_maze",
-                "algorithm": "Hybrid Prim-DFS + dead-end removal",
+                "algorithm": "Hybrid Prim-DFS + dead-end removal + horizontal wrap-around tunnels",
                 "ghost_house": self.ghost_house,
-                "ghost_house_cells": len(self.ghost_house_zone)
+                "ghost_house_cells": len(self.ghost_house_zone),
+                "has_warp_tunnels": True,
+                "warp_tunnel_type": "horizontal",
+                "playability": self.playability,
+                "dead_end_ratio": self.dead_end_ratio,
+                "cycle_intensity": self.cycle_intensity
             },
             "cells": cells
         }
