@@ -13,6 +13,22 @@ import os
 BASE_URL = os.environ.get('API_BASE_URL', 'http://localhost:5000')
 
 
+def is_server_available():
+    """Vérifie si le serveur est accessible."""
+    try:
+        response = requests.get(f"{BASE_URL}/", timeout=2)
+        return response.status_code == 200
+    except requests.exceptions.RequestException:
+        return False
+
+
+# Skip all E2E tests if server is not available
+pytestmark = pytest.mark.skipif(
+    not is_server_available(),
+    reason="API server not available (use 'python app.py' or set API_BASE_URL)"
+)
+
+
 class TestEndToEnd:
     """Tests de bout en bout sur l'API déployée."""
     

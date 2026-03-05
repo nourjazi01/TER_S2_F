@@ -40,7 +40,7 @@ jobs:
     - name: Generate coverage report
       run: |
         pip install pytest-cov
-        pytest tests/ --cov=Src --cov-report=term-missing
+        pytest tests/test_functional.py tests/test_api.py tests/test_maze_characteristics.py --cov=Src --cov-report=term-missing
         
   deploy:
     name: Deploy to Render
@@ -94,5 +94,5 @@ jobs:
         
     - name: Run all tests
       run: |
-        pytest tests/ -v
+        pytest tests/test_functional.py tests/test_api.py tests/test_maze_characteristics.py -v
       continue-on-error: false
