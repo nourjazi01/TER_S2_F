@@ -78,6 +78,8 @@ def generate_maze():
 @app.route('/api/maze', methods=['GET'])
 def get_maze():
     """Retourne les données du labyrinthe actuel."""
+    global current_maze
+    
     if current_maze is None:
         # Générer un labyrinthe par défaut
         generator = MazeGenerator(15, 15)
@@ -89,6 +91,8 @@ def get_maze():
 @app.route('/api/maze-info', methods=['GET'])
 def get_maze_info():
     """Retourne les informations du labyrinthe actuel."""
+    global current_maze
+    
     if current_maze is None:
         return jsonify({'error': 'Aucun labyrinthe généré'}), 404
     
@@ -108,4 +112,6 @@ if __name__ == '__main__':
     current_maze = generator.generate()
     
     # Lancer l'app en mode développement
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # Port depuis variable d'environnement ou 5000 par défaut
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=True, host='0.0.0.0', port=port)

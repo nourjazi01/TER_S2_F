@@ -1,11 +1,16 @@
 {
   "metadata": {
-    "width": 19,
-    "height": 19,
+    "width": 15,
+    "height": 15,
     "type": "braid_maze",
-    "algorithm": "Hybrid Prim-DFS + dead-end removal",
+    "algorithm": "Hybrid Prim-DFS + dead-end removal + horizontal wrap-around tunnels",
     "ghost_house": true,
-    "ghost_house_cells": 9
+    "ghost_house_cells": 9,
+    "has_warp_tunnels": true,
+    "warp_tunnel_type": "horizontal",
+    "playability": 0.5,
+    "dead_end_ratio": 0.0,
+    "cycle_intensity": 0.5
   },
   "cells": {
     "0,0": {
@@ -22,22 +27,20 @@
       "x": 1,
       "y": 0,
       "passages": [
-        "S",
         "E",
         "W"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "2,0": {
       "x": 2,
       "y": 0,
       "passages": [
-        "S",
         "E",
         "W"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "3,0": {
@@ -96,10 +99,9 @@
       "y": 0,
       "passages": [
         "S",
-        "E",
         "W"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "9,0": {
@@ -107,28 +109,26 @@
       "y": 0,
       "passages": [
         "S",
-        "E",
-        "W"
+        "E"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "10,0": {
       "x": 10,
       "y": 0,
       "passages": [
-        "S",
         "E",
         "W"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "11,0": {
       "x": 11,
       "y": 0,
       "passages": [
-        "E",
+        "S",
         "W"
       ],
       "degree": 2,
@@ -139,66 +139,23 @@
       "y": 0,
       "passages": [
         "S",
-        "E",
-        "W"
+        "E"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "13,0": {
       "x": 13,
       "y": 0,
       "passages": [
-        "S",
         "E",
         "W"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "14,0": {
       "x": 14,
-      "y": 0,
-      "passages": [
-        "E",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "15,0": {
-      "x": 15,
-      "y": 0,
-      "passages": [
-        "E",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "16,0": {
-      "x": 16,
-      "y": 0,
-      "passages": [
-        "E",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "17,0": {
-      "x": 17,
-      "y": 0,
-      "passages": [
-        "S",
-        "E",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "18,0": {
-      "x": 18,
       "y": 0,
       "passages": [
         "S",
@@ -212,17 +169,18 @@
       "y": 1,
       "passages": [
         "N",
-        "S"
+        "S",
+        "E"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "1,1": {
       "x": 1,
       "y": 1,
       "passages": [
-        "N",
-        "S"
+        "E",
+        "W"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -231,11 +189,10 @@
       "x": 2,
       "y": 1,
       "passages": [
-        "N",
-        "S",
-        "E"
+        "E",
+        "W"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "3,1": {
@@ -253,7 +210,7 @@
       "y": 1,
       "passages": [
         "N",
-        "S"
+        "E"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -263,7 +220,7 @@
       "y": 1,
       "passages": [
         "S",
-        "E"
+        "W"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -273,11 +230,9 @@
       "y": 1,
       "passages": [
         "N",
-        "S",
-        "E",
-        "W"
+        "E"
       ],
-      "degree": 4,
+      "degree": 2,
       "is_ghost_house": false
     },
     "7,1": {
@@ -296,7 +251,7 @@
       "y": 1,
       "passages": [
         "N",
-        "S"
+        "E"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -306,17 +261,18 @@
       "y": 1,
       "passages": [
         "N",
-        "S"
+        "E",
+        "W"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "10,1": {
       "x": 10,
       "y": 1,
       "passages": [
-        "N",
-        "E"
+        "S",
+        "W"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -325,9 +281,9 @@
       "x": 11,
       "y": 1,
       "passages": [
+        "N",
         "S",
-        "E",
-        "W"
+        "E"
       ],
       "degree": 3,
       "is_ghost_house": false
@@ -337,17 +293,19 @@
       "y": 1,
       "passages": [
         "N",
+        "S",
+        "E",
         "W"
       ],
-      "degree": 2,
+      "degree": 4,
       "is_ghost_house": false
     },
     "13,1": {
       "x": 13,
       "y": 1,
       "passages": [
-        "N",
-        "S"
+        "S",
+        "W"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -356,53 +314,10 @@
       "x": 14,
       "y": 1,
       "passages": [
-        "S",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "15,1": {
-      "x": 15,
-      "y": 1,
-      "passages": [
-        "S",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "16,1": {
-      "x": 16,
-      "y": 1,
-      "passages": [
-        "S",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "17,1": {
-      "x": 17,
-      "y": 1,
-      "passages": [
         "N",
-        "S",
-        "E",
-        "W"
+        "S"
       ],
-      "degree": 4,
-      "is_ghost_house": false
-    },
-    "18,1": {
-      "x": 18,
-      "y": 1,
-      "passages": [
-        "N",
-        "S",
-        "W"
-      ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "0,2": {
@@ -410,33 +325,29 @@
       "y": 2,
       "passages": [
         "N",
-        "S",
-        "E"
+        "S"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "1,2": {
       "x": 1,
       "y": 2,
       "passages": [
-        "N",
         "S",
-        "E",
-        "W"
+        "E"
       ],
-      "degree": 4,
+      "degree": 2,
       "is_ghost_house": false
     },
     "2,2": {
       "x": 2,
       "y": 2,
       "passages": [
-        "N",
-        "E",
+        "S",
         "W"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "3,2": {
@@ -444,21 +355,19 @@
       "y": 2,
       "passages": [
         "N",
-        "S",
-        "W"
+        "E"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "4,2": {
       "x": 4,
       "y": 2,
       "passages": [
-        "N",
         "S",
-        "E"
+        "W"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "5,2": {
@@ -466,21 +375,19 @@
       "y": 2,
       "passages": [
         "N",
-        "E",
-        "W"
+        "E"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "6,2": {
       "x": 6,
       "y": 2,
       "passages": [
-        "N",
         "S",
         "W"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "7,2": {
@@ -488,7 +395,7 @@
       "y": 2,
       "passages": [
         "N",
-        "S"
+        "E"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -497,8 +404,8 @@
       "x": 8,
       "y": 2,
       "passages": [
-        "N",
-        "S"
+        "E",
+        "W"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -507,9 +414,9 @@
       "x": 9,
       "y": 2,
       "passages": [
-        "N",
         "S",
-        "E"
+        "E",
+        "W"
       ],
       "degree": 3,
       "is_ghost_house": false
@@ -518,11 +425,10 @@
       "x": 10,
       "y": 2,
       "passages": [
-        "S",
-        "E",
+        "N",
         "W"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "11,2": {
@@ -530,22 +436,19 @@
       "y": 2,
       "passages": [
         "N",
-        "S",
-        "E",
-        "W"
+        "S"
       ],
-      "degree": 4,
+      "degree": 2,
       "is_ghost_house": false
     },
     "12,2": {
       "x": 12,
       "y": 2,
       "passages": [
-        "S",
-        "E",
-        "W"
+        "N",
+        "S"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "13,2": {
@@ -553,10 +456,9 @@
       "y": 2,
       "passages": [
         "N",
-        "S",
-        "W"
+        "S"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "14,2": {
@@ -564,51 +466,9 @@
       "y": 2,
       "passages": [
         "N",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "15,2": {
-      "x": 15,
-      "y": 2,
-      "passages": [
-        "N",
-        "S",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "16,2": {
-      "x": 16,
-      "y": 2,
-      "passages": [
-        "N",
         "S"
       ],
       "degree": 2,
-      "is_ghost_house": false
-    },
-    "17,2": {
-      "x": 17,
-      "y": 2,
-      "passages": [
-        "N",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "18,2": {
-      "x": 18,
-      "y": 2,
-      "passages": [
-        "N",
-        "S",
-        "W"
-      ],
-      "degree": 3,
       "is_ghost_house": false
     },
     "0,3": {
@@ -616,9 +476,10 @@
       "y": 3,
       "passages": [
         "N",
-        "S"
+        "S",
+        "E"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "1,3": {
@@ -626,18 +487,17 @@
       "y": 3,
       "passages": [
         "N",
-        "S",
-        "E"
+        "W"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "2,3": {
       "x": 2,
       "y": 3,
       "passages": [
-        "S",
-        "W"
+        "N",
+        "S"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -646,8 +506,8 @@
       "x": 3,
       "y": 3,
       "passages": [
-        "N",
-        "S"
+        "S",
+        "E"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -657,20 +517,20 @@
       "y": 3,
       "passages": [
         "N",
-        "E"
+        "E",
+        "W"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "5,3": {
       "x": 5,
       "y": 3,
       "passages": [
-        "S",
         "E",
         "W"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "6,3": {
@@ -679,29 +539,27 @@
       "passages": [
         "N",
         "S",
-        "E",
         "W"
       ],
-      "degree": 4,
+      "degree": 3,
       "is_ghost_house": false
     },
     "7,3": {
       "x": 7,
       "y": 3,
       "passages": [
-        "N",
         "S",
-        "W"
+        "E"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "8,3": {
       "x": 8,
       "y": 3,
       "passages": [
-        "N",
-        "S"
+        "E",
+        "W"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -712,20 +570,20 @@
       "passages": [
         "N",
         "S",
-        "E"
+        "E",
+        "W"
       ],
-      "degree": 3,
+      "degree": 4,
       "is_ghost_house": false
     },
     "10,3": {
       "x": 10,
       "y": 3,
       "passages": [
-        "N",
         "E",
         "W"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "11,3": {
@@ -753,56 +611,13 @@
       "y": 3,
       "passages": [
         "N",
-        "E",
         "W"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "14,3": {
       "x": 14,
-      "y": 3,
-      "passages": [
-        "S",
-        "E",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "15,3": {
-      "x": 15,
-      "y": 3,
-      "passages": [
-        "N",
-        "S",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "16,3": {
-      "x": 16,
-      "y": 3,
-      "passages": [
-        "N",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "17,3": {
-      "x": 17,
-      "y": 3,
-      "passages": [
-        "S",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "18,3": {
-      "x": 18,
       "y": 3,
       "passages": [
         "N",
@@ -816,19 +631,21 @@
       "y": 4,
       "passages": [
         "N",
-        "S"
+        "S",
+        "E"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "1,4": {
       "x": 1,
       "y": 4,
       "passages": [
-        "N",
-        "S"
+        "S",
+        "E",
+        "W"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "2,4": {
@@ -837,7 +654,7 @@
       "passages": [
         "N",
         "S",
-        "E"
+        "W"
       ],
       "degree": 3,
       "is_ghost_house": false
@@ -847,28 +664,28 @@
       "y": 4,
       "passages": [
         "N",
-        "E",
-        "W"
+        "E"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "4,4": {
       "x": 4,
       "y": 4,
       "passages": [
+        "S",
         "E",
         "W"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "5,4": {
       "x": 5,
       "y": 4,
       "passages": [
-        "N",
         "S",
+        "E",
         "W"
       ],
       "degree": 3,
@@ -879,9 +696,11 @@
       "y": 4,
       "passages": [
         "N",
-        "E"
+        "S",
+        "E",
+        "W"
       ],
-      "degree": 2,
+      "degree": 4,
       "is_ghost_house": false
     },
     "7,4": {
@@ -889,18 +708,19 @@
       "y": 4,
       "passages": [
         "N",
+        "E",
         "W"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "8,4": {
       "x": 8,
       "y": 4,
       "passages": [
-        "N",
         "S",
-        "E"
+        "E",
+        "W"
       ],
       "degree": 3,
       "is_ghost_house": false
@@ -910,11 +730,10 @@
       "y": 4,
       "passages": [
         "N",
-        "S",
         "E",
         "W"
       ],
-      "degree": 4,
+      "degree": 3,
       "is_ghost_house": false
     },
     "10,4": {
@@ -922,9 +741,10 @@
       "y": 4,
       "passages": [
         "S",
+        "E",
         "W"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "11,4": {
@@ -932,7 +752,7 @@
       "y": 4,
       "passages": [
         "S",
-        "E"
+        "W"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -942,7 +762,7 @@
       "y": 4,
       "passages": [
         "S",
-        "W"
+        "E"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -951,8 +771,8 @@
       "x": 13,
       "y": 4,
       "passages": [
-        "S",
-        "E"
+        "E",
+        "W"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -962,52 +782,10 @@
       "y": 4,
       "passages": [
         "N",
-        "E",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "15,4": {
-      "x": 15,
-      "y": 4,
-      "passages": [
-        "N",
         "S",
         "W"
       ],
       "degree": 3,
-      "is_ghost_house": false
-    },
-    "16,4": {
-      "x": 16,
-      "y": 4,
-      "passages": [
-        "S",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "17,4": {
-      "x": 17,
-      "y": 4,
-      "passages": [
-        "N",
-        "S",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "18,4": {
-      "x": 18,
-      "y": 4,
-      "passages": [
-        "N",
-        "S"
-      ],
-      "degree": 2,
       "is_ghost_house": false
     },
     "0,5": {
@@ -1015,10 +793,9 @@
       "y": 5,
       "passages": [
         "N",
-        "S",
-        "E"
+        "S"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "1,5": {
@@ -1026,10 +803,9 @@
       "y": 5,
       "passages": [
         "N",
-        "E",
-        "W"
+        "S"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "2,5": {
@@ -1037,9 +813,10 @@
       "y": 5,
       "passages": [
         "N",
-        "W"
+        "S",
+        "E"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "3,5": {
@@ -1047,19 +824,22 @@
       "y": 5,
       "passages": [
         "S",
-        "E"
+        "E",
+        "W"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "4,5": {
       "x": 4,
       "y": 5,
       "passages": [
+        "N",
         "S",
+        "E",
         "W"
       ],
-      "degree": 2,
+      "degree": 4,
       "is_ghost_house": false
     },
     "5,5": {
@@ -1067,19 +847,22 @@
       "y": 5,
       "passages": [
         "N",
-        "E"
+        "S",
+        "E",
+        "W"
       ],
-      "degree": 2,
+      "degree": 4,
       "is_ghost_house": false
     },
     "6,5": {
       "x": 6,
       "y": 5,
       "passages": [
+        "N",
         "E",
         "W"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "7,5": {
@@ -1098,18 +881,17 @@
       "y": 5,
       "passages": [
         "N",
-        "S",
         "W"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "9,5": {
       "x": 9,
       "y": 5,
       "passages": [
-        "N",
-        "S"
+        "S",
+        "E"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -1119,7 +901,7 @@
       "y": 5,
       "passages": [
         "N",
-        "E"
+        "W"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -1129,9 +911,10 @@
       "y": 5,
       "passages": [
         "N",
-        "W"
+        "S",
+        "E"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "12,5": {
@@ -1140,7 +923,7 @@
       "passages": [
         "N",
         "S",
-        "E"
+        "W"
       ],
       "degree": 3,
       "is_ghost_house": false
@@ -1149,57 +932,14 @@
       "x": 13,
       "y": 5,
       "passages": [
-        "N",
-        "W"
+        "S",
+        "E"
       ],
       "degree": 2,
       "is_ghost_house": false
     },
     "14,5": {
       "x": 14,
-      "y": 5,
-      "passages": [
-        "S",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "15,5": {
-      "x": 15,
-      "y": 5,
-      "passages": [
-        "N",
-        "E",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "16,5": {
-      "x": 16,
-      "y": 5,
-      "passages": [
-        "N",
-        "S",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "17,5": {
-      "x": 17,
-      "y": 5,
-      "passages": [
-        "N",
-        "S",
-        "E"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "18,5": {
-      "x": 18,
       "y": 5,
       "passages": [
         "N",
@@ -1214,27 +954,29 @@
       "y": 6,
       "passages": [
         "N",
+        "S",
         "E"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "1,6": {
       "x": 1,
       "y": 6,
       "passages": [
+        "N",
         "S",
         "W"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "2,6": {
       "x": 2,
       "y": 6,
       "passages": [
-        "S",
-        "E"
+        "N",
+        "S"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -1244,10 +986,9 @@
       "y": 6,
       "passages": [
         "N",
-        "S",
-        "W"
+        "S"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "4,6": {
@@ -1255,7 +996,7 @@
       "y": 6,
       "passages": [
         "N",
-        "E"
+        "S"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -1264,8 +1005,8 @@
       "x": 5,
       "y": 6,
       "passages": [
-        "E",
-        "W"
+        "N",
+        "S"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -1275,23 +1016,35 @@
       "y": 6,
       "passages": [
         "S",
-        "W"
+        "E"
       ],
       "degree": 2,
-      "is_ghost_house": false
+      "is_ghost_house": true
     },
     "7,6": {
       "x": 7,
       "y": 6,
       "passages": [
         "N",
-        "S"
+        "S",
+        "E",
+        "W"
       ],
-      "degree": 2,
-      "is_ghost_house": false
+      "degree": 4,
+      "is_ghost_house": true
     },
     "8,6": {
       "x": 8,
+      "y": 6,
+      "passages": [
+        "S",
+        "W"
+      ],
+      "degree": 2,
+      "is_ghost_house": true
+    },
+    "9,6": {
+      "x": 9,
       "y": 6,
       "passages": [
         "N",
@@ -1301,22 +1054,12 @@
       "degree": 3,
       "is_ghost_house": false
     },
-    "9,6": {
-      "x": 9,
-      "y": 6,
-      "passages": [
-        "N",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
     "10,6": {
       "x": 10,
       "y": 6,
       "passages": [
-        "S",
-        "E"
+        "E",
+        "W"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -1325,8 +1068,8 @@
       "x": 11,
       "y": 6,
       "passages": [
+        "N",
         "S",
-        "E",
         "W"
       ],
       "degree": 3,
@@ -1337,17 +1080,18 @@
       "y": 6,
       "passages": [
         "N",
-        "W"
+        "S",
+        "E"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "13,6": {
       "x": 13,
       "y": 6,
       "passages": [
-        "S",
-        "E"
+        "N",
+        "W"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -1357,48 +1101,7 @@
       "y": 6,
       "passages": [
         "N",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "15,6": {
-      "x": 15,
-      "y": 6,
-      "passages": [
-        "S",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "16,6": {
-      "x": 16,
-      "y": 6,
-      "passages": [
-        "N",
-        "S",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "17,6": {
-      "x": 17,
-      "y": 6,
-      "passages": [
-        "N",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "18,6": {
-      "x": 18,
-      "y": 6,
-      "passages": [
-        "N",
-        "W"
+        "S"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -1407,10 +1110,11 @@
       "x": 0,
       "y": 7,
       "passages": [
+        "N",
         "S",
-        "E"
+        "W"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "1,7": {
@@ -1419,7 +1123,7 @@
       "passages": [
         "N",
         "S",
-        "W"
+        "E"
       ],
       "degree": 3,
       "is_ghost_house": false
@@ -1429,9 +1133,10 @@
       "y": 7,
       "passages": [
         "N",
-        "S"
+        "S",
+        "W"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "3,7": {
@@ -1439,30 +1144,31 @@
       "y": 7,
       "passages": [
         "N",
-        "S",
-        "E"
+        "S"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "4,7": {
       "x": 4,
       "y": 7,
       "passages": [
+        "N",
         "S",
-        "W"
+        "E"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "5,7": {
       "x": 5,
       "y": 7,
       "passages": [
+        "N",
         "S",
-        "E"
+        "W"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "6,7": {
@@ -1470,39 +1176,42 @@
       "y": 7,
       "passages": [
         "N",
-        "E",
-        "W"
+        "S",
+        "E"
       ],
       "degree": 3,
-      "is_ghost_house": false
+      "is_ghost_house": true
     },
     "7,7": {
       "x": 7,
       "y": 7,
       "passages": [
         "N",
+        "S",
+        "E",
         "W"
       ],
-      "degree": 2,
-      "is_ghost_house": false
+      "degree": 4,
+      "is_ghost_house": true
     },
     "8,7": {
       "x": 8,
       "y": 7,
       "passages": [
         "N",
-        "E"
+        "S",
+        "W"
       ],
-      "degree": 2,
-      "is_ghost_house": false
+      "degree": 3,
+      "is_ghost_house": true
     },
     "9,7": {
       "x": 9,
       "y": 7,
       "passages": [
+        "N",
         "S",
-        "E",
-        "W"
+        "E"
       ],
       "degree": 3,
       "is_ghost_house": false
@@ -1511,7 +1220,7 @@
       "x": 10,
       "y": 7,
       "passages": [
-        "N",
+        "S",
         "W"
       ],
       "degree": 2,
@@ -1522,7 +1231,7 @@
       "y": 7,
       "passages": [
         "N",
-        "S"
+        "E"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -1531,70 +1240,34 @@
       "x": 12,
       "y": 7,
       "passages": [
-        "S",
-        "E"
+        "N",
+        "E",
+        "W"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "13,7": {
       "x": 13,
       "y": 7,
       "passages": [
-        "N",
+        "S",
+        "E",
         "W"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "14,7": {
       "x": 14,
       "y": 7,
       "passages": [
+        "N",
         "S",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "15,7": {
-      "x": 15,
-      "y": 7,
-      "passages": [
-        "N",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "16,7": {
-      "x": 16,
-      "y": 7,
-      "passages": [
-        "N",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "17,7": {
-      "x": 17,
-      "y": 7,
-      "passages": [
         "E",
         "W"
       ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "18,7": {
-      "x": 18,
-      "y": 7,
-      "passages": [
-        "S",
-        "W"
-      ],
-      "degree": 2,
+      "degree": 4,
       "is_ghost_house": false
     },
     "0,8": {
@@ -1632,9 +1305,10 @@
       "y": 8,
       "passages": [
         "N",
-        "S"
+        "S",
+        "E"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "4,8": {
@@ -1642,7 +1316,7 @@
       "y": 8,
       "passages": [
         "N",
-        "S"
+        "W"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -1652,38 +1326,38 @@
       "y": 8,
       "passages": [
         "N",
-        "S",
-        "E"
+        "S"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "6,8": {
       "x": 6,
       "y": 8,
       "passages": [
-        "E",
-        "W"
+        "N",
+        "E"
       ],
       "degree": 2,
-      "is_ghost_house": false
+      "is_ghost_house": true
     },
     "7,8": {
       "x": 7,
       "y": 8,
       "passages": [
-        "S",
+        "N",
+        "E",
         "W"
       ],
-      "degree": 2,
-      "is_ghost_house": false
+      "degree": 3,
+      "is_ghost_house": true
     },
     "8,8": {
       "x": 8,
       "y": 8,
       "passages": [
-        "S",
-        "E"
+        "N",
+        "W"
       ],
       "degree": 2,
       "is_ghost_house": true
@@ -1693,40 +1367,37 @@
       "y": 8,
       "passages": [
         "N",
-        "S",
-        "E",
-        "W"
+        "S"
       ],
-      "degree": 4,
-      "is_ghost_house": true
+      "degree": 2,
+      "is_ghost_house": false
     },
     "10,8": {
       "x": 10,
+      "y": 8,
+      "passages": [
+        "N",
+        "E"
+      ],
+      "degree": 2,
+      "is_ghost_house": false
+    },
+    "11,8": {
+      "x": 11,
       "y": 8,
       "passages": [
         "S",
         "W"
       ],
       "degree": 2,
-      "is_ghost_house": true
-    },
-    "11,8": {
-      "x": 11,
-      "y": 8,
-      "passages": [
-        "N",
-        "S",
-        "E"
-      ],
-      "degree": 3,
       "is_ghost_house": false
     },
     "12,8": {
       "x": 12,
       "y": 8,
       "passages": [
-        "N",
-        "W"
+        "S",
+        "E"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -1735,10 +1406,11 @@
       "x": 13,
       "y": 8,
       "passages": [
-        "S",
-        "E"
+        "N",
+        "E",
+        "W"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "14,8": {
@@ -1747,47 +1419,6 @@
       "passages": [
         "N",
         "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "15,8": {
-      "x": 15,
-      "y": 8,
-      "passages": [
-        "S",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "16,8": {
-      "x": 16,
-      "y": 8,
-      "passages": [
-        "S",
-        "E",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "17,8": {
-      "x": 17,
-      "y": 8,
-      "passages": [
-        "S",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "18,8": {
-      "x": 18,
-      "y": 8,
-      "passages": [
-        "N",
-        "S"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -1807,9 +1438,10 @@
       "y": 9,
       "passages": [
         "N",
+        "S",
         "E"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "2,9": {
@@ -1828,18 +1460,17 @@
       "y": 9,
       "passages": [
         "N",
-        "S",
-        "E"
+        "S"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "4,9": {
       "x": 4,
       "y": 9,
       "passages": [
-        "N",
-        "W"
+        "S",
+        "E"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -1849,7 +1480,7 @@
       "y": 9,
       "passages": [
         "N",
-        "E"
+        "W"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -1859,7 +1490,7 @@
       "y": 9,
       "passages": [
         "S",
-        "W"
+        "E"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -1868,8 +1499,8 @@
       "x": 7,
       "y": 9,
       "passages": [
-        "N",
-        "S"
+        "S",
+        "W"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -1878,15 +1509,35 @@
       "x": 8,
       "y": 9,
       "passages": [
-        "N",
         "S",
         "E"
       ],
-      "degree": 3,
-      "is_ghost_house": true
+      "degree": 2,
+      "is_ghost_house": false
     },
     "9,9": {
       "x": 9,
+      "y": 9,
+      "passages": [
+        "N",
+        "E",
+        "W"
+      ],
+      "degree": 3,
+      "is_ghost_house": false
+    },
+    "10,9": {
+      "x": 10,
+      "y": 9,
+      "passages": [
+        "E",
+        "W"
+      ],
+      "degree": 2,
+      "is_ghost_house": false
+    },
+    "11,9": {
+      "x": 11,
       "y": 9,
       "passages": [
         "N",
@@ -1895,45 +1546,26 @@
         "W"
       ],
       "degree": 4,
-      "is_ghost_house": true
-    },
-    "10,9": {
-      "x": 10,
-      "y": 9,
-      "passages": [
-        "N",
-        "S",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": true
-    },
-    "11,9": {
-      "x": 11,
-      "y": 9,
-      "passages": [
-        "N",
-        "E"
-      ],
-      "degree": 2,
       "is_ghost_house": false
     },
     "12,9": {
       "x": 12,
       "y": 9,
       "passages": [
+        "N",
         "S",
+        "E",
         "W"
       ],
-      "degree": 2,
+      "degree": 4,
       "is_ghost_house": false
     },
     "13,9": {
       "x": 13,
       "y": 9,
       "passages": [
-        "N",
-        "S"
+        "E",
+        "W"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -1943,48 +1575,7 @@
       "y": 9,
       "passages": [
         "S",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "15,9": {
-      "x": 15,
-      "y": 9,
-      "passages": [
-        "N",
-        "S",
         "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "16,9": {
-      "x": 16,
-      "y": 9,
-      "passages": [
-        "N",
-        "S"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "17,9": {
-      "x": 17,
-      "y": 9,
-      "passages": [
-        "N",
-        "S"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "18,9": {
-      "x": 18,
-      "y": 9,
-      "passages": [
-        "N",
-        "S"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -2003,10 +1594,11 @@
       "x": 1,
       "y": 10,
       "passages": [
+        "N",
         "S",
         "E"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "2,10": {
@@ -2014,9 +1606,10 @@
       "y": 10,
       "passages": [
         "N",
+        "E",
         "W"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "3,10": {
@@ -2024,19 +1617,22 @@
       "y": 10,
       "passages": [
         "N",
-        "S"
+        "S",
+        "E",
+        "W"
       ],
-      "degree": 2,
+      "degree": 4,
       "is_ghost_house": false
     },
     "4,10": {
       "x": 4,
       "y": 10,
       "passages": [
+        "N",
         "S",
-        "E"
+        "W"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "5,10": {
@@ -2044,7 +1640,7 @@
       "y": 10,
       "passages": [
         "S",
-        "W"
+        "E"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -2054,7 +1650,7 @@
       "y": 10,
       "passages": [
         "N",
-        "E"
+        "W"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -2064,10 +1660,9 @@
       "y": 10,
       "passages": [
         "N",
-        "E",
-        "W"
+        "S"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "8,10": {
@@ -2075,39 +1670,38 @@
       "y": 10,
       "passages": [
         "N",
-        "E",
-        "W"
+        "S"
       ],
-      "degree": 3,
-      "is_ghost_house": true
+      "degree": 2,
+      "is_ghost_house": false
     },
     "9,10": {
       "x": 9,
       "y": 10,
       "passages": [
-        "N",
-        "E",
-        "W"
+        "S",
+        "E"
       ],
-      "degree": 3,
-      "is_ghost_house": true
+      "degree": 2,
+      "is_ghost_house": false
     },
     "10,10": {
       "x": 10,
       "y": 10,
       "passages": [
-        "N",
+        "S",
+        "E",
         "W"
       ],
-      "degree": 2,
-      "is_ghost_house": true
+      "degree": 3,
+      "is_ghost_house": false
     },
     "11,10": {
       "x": 11,
       "y": 10,
       "passages": [
-        "S",
-        "E"
+        "N",
+        "W"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -2117,20 +1711,20 @@
       "y": 10,
       "passages": [
         "N",
-        "S",
-        "W"
+        "E"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "13,10": {
       "x": 13,
       "y": 10,
       "passages": [
-        "N",
-        "E"
+        "S",
+        "E",
+        "W"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "14,10": {
@@ -2142,48 +1736,6 @@
         "W"
       ],
       "degree": 3,
-      "is_ghost_house": false
-    },
-    "15,10": {
-      "x": 15,
-      "y": 10,
-      "passages": [
-        "N",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "16,10": {
-      "x": 16,
-      "y": 10,
-      "passages": [
-        "N",
-        "S",
-        "E",
-        "W"
-      ],
-      "degree": 4,
-      "is_ghost_house": false
-    },
-    "17,10": {
-      "x": 17,
-      "y": 10,
-      "passages": [
-        "N",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "18,10": {
-      "x": 18,
-      "y": 10,
-      "passages": [
-        "N",
-        "S"
-      ],
-      "degree": 2,
       "is_ghost_house": false
     },
     "0,11": {
@@ -2201,9 +1753,10 @@
       "y": 11,
       "passages": [
         "N",
-        "S"
+        "S",
+        "E"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "2,11": {
@@ -2211,7 +1764,7 @@
       "y": 11,
       "passages": [
         "S",
-        "E"
+        "W"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -2222,7 +1775,7 @@
       "passages": [
         "N",
         "S",
-        "W"
+        "E"
       ],
       "degree": 3,
       "is_ghost_house": false
@@ -2232,9 +1785,10 @@
       "y": 11,
       "passages": [
         "N",
-        "S"
+        "S",
+        "W"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "5,11": {
@@ -2242,37 +1796,40 @@
       "y": 11,
       "passages": [
         "N",
+        "S",
         "E"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "6,11": {
       "x": 6,
       "y": 11,
       "passages": [
+        "S",
         "E",
         "W"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "7,11": {
       "x": 7,
       "y": 11,
       "passages": [
-        "S",
+        "N",
+        "E",
         "W"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "8,11": {
       "x": 8,
       "y": 11,
       "passages": [
-        "S",
-        "E"
+        "N",
+        "W"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -2281,8 +1838,8 @@
       "x": 9,
       "y": 11,
       "passages": [
-        "S",
-        "W"
+        "N",
+        "S"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -2291,7 +1848,7 @@
       "x": 10,
       "y": 11,
       "passages": [
-        "S",
+        "N",
         "E"
       ],
       "degree": 2,
@@ -2301,20 +1858,19 @@
       "x": 11,
       "y": 11,
       "passages": [
-        "N",
-        "S",
+        "E",
         "W"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "12,11": {
       "x": 12,
       "y": 11,
       "passages": [
-        "N",
         "S",
-        "E"
+        "E",
+        "W"
       ],
       "degree": 3,
       "is_ghost_house": false
@@ -2323,10 +1879,11 @@
       "x": 13,
       "y": 11,
       "passages": [
+        "N",
         "S",
         "W"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "14,11": {
@@ -2334,47 +1891,7 @@
       "y": 11,
       "passages": [
         "N",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "15,11": {
-      "x": 15,
-      "y": 11,
-      "passages": [
-        "S",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "16,11": {
-      "x": 16,
-      "y": 11,
-      "passages": [
-        "N",
         "S"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "17,11": {
-      "x": 17,
-      "y": 11,
-      "passages": [
-        "S",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "18,11": {
-      "x": 18,
-      "y": 11,
-      "passages": [
-        "N",
-        "W"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -2384,7 +1901,7 @@
       "y": 12,
       "passages": [
         "N",
-        "E"
+        "S"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -2394,7 +1911,7 @@
       "y": 12,
       "passages": [
         "N",
-        "W"
+        "E"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -2404,9 +1921,11 @@
       "y": 12,
       "passages": [
         "N",
-        "S"
+        "S",
+        "E",
+        "W"
       ],
-      "degree": 2,
+      "degree": 4,
       "is_ghost_house": false
     },
     "3,12": {
@@ -2414,9 +1933,11 @@
       "y": 12,
       "passages": [
         "N",
-        "E"
+        "S",
+        "E",
+        "W"
       ],
-      "degree": 2,
+      "degree": 4,
       "is_ghost_house": false
     },
     "4,12": {
@@ -2424,17 +1945,18 @@
       "y": 12,
       "passages": [
         "N",
+        "S",
         "E",
         "W"
       ],
-      "degree": 3,
+      "degree": 4,
       "is_ghost_house": false
     },
     "5,12": {
       "x": 5,
       "y": 12,
       "passages": [
-        "S",
+        "N",
         "E",
         "W"
       ],
@@ -2445,18 +1967,19 @@
       "x": 6,
       "y": 12,
       "passages": [
-        "S",
+        "N",
+        "E",
         "W"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "7,12": {
       "x": 7,
       "y": 12,
       "passages": [
-        "N",
-        "S"
+        "E",
+        "W"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -2465,8 +1988,8 @@
       "x": 8,
       "y": 12,
       "passages": [
-        "N",
-        "S"
+        "S",
+        "W"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -2485,8 +2008,8 @@
       "x": 10,
       "y": 12,
       "passages": [
-        "N",
-        "S"
+        "S",
+        "E"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -2495,10 +2018,11 @@
       "x": 11,
       "y": 12,
       "passages": [
-        "N",
-        "E"
+        "S",
+        "E",
+        "W"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "12,12": {
@@ -2506,7 +2030,7 @@
       "y": 12,
       "passages": [
         "N",
-        "E",
+        "S",
         "W"
       ],
       "degree": 3,
@@ -2518,7 +2042,7 @@
       "passages": [
         "N",
         "S",
-        "W"
+        "E"
       ],
       "degree": 3,
       "is_ghost_house": false
@@ -2527,49 +2051,7 @@
       "x": 14,
       "y": 12,
       "passages": [
-        "S",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "15,12": {
-      "x": 15,
-      "y": 12,
-      "passages": [
         "N",
-        "E",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "16,12": {
-      "x": 16,
-      "y": 12,
-      "passages": [
-        "N",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "17,12": {
-      "x": 17,
-      "y": 12,
-      "passages": [
-        "N",
-        "S",
-        "E"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "18,12": {
-      "x": 18,
-      "y": 12,
-      "passages": [
-        "S",
         "W"
       ],
       "degree": 2,
@@ -2579,10 +2061,11 @@
       "x": 0,
       "y": 13,
       "passages": [
+        "N",
         "S",
         "E"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "1,13": {
@@ -2609,44 +2092,15 @@
       "x": 3,
       "y": 13,
       "passages": [
-        "S",
+        "N",
+        "E",
         "W"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "4,13": {
       "x": 4,
-      "y": 13,
-      "passages": [
-        "S",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "5,13": {
-      "x": 5,
-      "y": 13,
-      "passages": [
-        "N",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "6,13": {
-      "x": 6,
-      "y": 13,
-      "passages": [
-        "N",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "7,13": {
-      "x": 7,
       "y": 13,
       "passages": [
         "N",
@@ -2656,12 +2110,43 @@
       "degree": 3,
       "is_ghost_house": false
     },
+    "5,13": {
+      "x": 5,
+      "y": 13,
+      "passages": [
+        "S",
+        "E",
+        "W"
+      ],
+      "degree": 3,
+      "is_ghost_house": false
+    },
+    "6,13": {
+      "x": 6,
+      "y": 13,
+      "passages": [
+        "E",
+        "W"
+      ],
+      "degree": 2,
+      "is_ghost_house": false
+    },
+    "7,13": {
+      "x": 7,
+      "y": 13,
+      "passages": [
+        "E",
+        "W"
+      ],
+      "degree": 2,
+      "is_ghost_house": false
+    },
     "8,13": {
       "x": 8,
       "y": 13,
       "passages": [
         "N",
-        "S",
+        "E",
         "W"
       ],
       "degree": 3,
@@ -2672,7 +2157,7 @@
       "y": 13,
       "passages": [
         "N",
-        "S"
+        "W"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -2691,7 +2176,7 @@
       "x": 11,
       "y": 13,
       "passages": [
-        "S",
+        "N",
         "E"
       ],
       "degree": 2,
@@ -2701,10 +2186,11 @@
       "x": 12,
       "y": 13,
       "passages": [
-        "E",
+        "N",
+        "S",
         "W"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "13,13": {
@@ -2712,59 +2198,17 @@
       "y": 13,
       "passages": [
         "N",
-        "E",
-        "W"
+        "E"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "14,13": {
       "x": 14,
       "y": 13,
       "passages": [
-        "N",
-        "E",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "15,13": {
-      "x": 15,
-      "y": 13,
-      "passages": [
         "S",
         "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "16,13": {
-      "x": 16,
-      "y": 13,
-      "passages": [
-        "S",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "17,13": {
-      "x": 17,
-      "y": 13,
-      "passages": [
-        "N",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "18,13": {
-      "x": 18,
-      "y": 13,
-      "passages": [
-        "N",
-        "S"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -2774,7 +2218,7 @@
       "y": 14,
       "passages": [
         "N",
-        "S"
+        "E"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -2784,8 +2228,8 @@
       "y": 14,
       "passages": [
         "N",
-        "S",
-        "E"
+        "E",
+        "W"
       ],
       "degree": 3,
       "is_ghost_house": false
@@ -2794,37 +2238,14 @@
       "x": 2,
       "y": 14,
       "passages": [
-        "S",
         "E",
         "W"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "3,14": {
       "x": 3,
-      "y": 14,
-      "passages": [
-        "N",
-        "S",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "4,14": {
-      "x": 4,
-      "y": 14,
-      "passages": [
-        "N",
-        "S",
-        "E"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "5,14": {
-      "x": 5,
       "y": 14,
       "passages": [
         "E",
@@ -2833,22 +2254,42 @@
       "degree": 2,
       "is_ghost_house": false
     },
-    "6,14": {
-      "x": 6,
+    "4,14": {
+      "x": 4,
       "y": 14,
       "passages": [
-        "S",
+        "E",
+        "W"
+      ],
+      "degree": 2,
+      "is_ghost_house": false
+    },
+    "5,14": {
+      "x": 5,
+      "y": 14,
+      "passages": [
+        "N",
         "E",
         "W"
       ],
       "degree": 3,
       "is_ghost_house": false
     },
+    "6,14": {
+      "x": 6,
+      "y": 14,
+      "passages": [
+        "E",
+        "W"
+      ],
+      "degree": 2,
+      "is_ghost_house": false
+    },
     "7,14": {
       "x": 7,
       "y": 14,
       "passages": [
-        "S",
+        "E",
         "W"
       ],
       "degree": 2,
@@ -2858,8 +2299,8 @@
       "x": 8,
       "y": 14,
       "passages": [
-        "N",
-        "S"
+        "E",
+        "W"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -2868,8 +2309,8 @@
       "x": 9,
       "y": 14,
       "passages": [
-        "N",
-        "S"
+        "E",
+        "W"
       ],
       "degree": 2,
       "is_ghost_house": false
@@ -2879,8 +2320,8 @@
       "y": 14,
       "passages": [
         "N",
-        "S",
-        "E"
+        "E",
+        "W"
       ],
       "degree": 3,
       "is_ghost_house": false
@@ -2889,870 +2330,36 @@
       "x": 11,
       "y": 14,
       "passages": [
-        "N",
-        "S",
+        "E",
         "W"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "12,14": {
       "x": 12,
       "y": 14,
       "passages": [
-        "S",
-        "E"
+        "N",
+        "E",
+        "W"
       ],
-      "degree": 2,
+      "degree": 3,
       "is_ghost_house": false
     },
     "13,14": {
       "x": 13,
       "y": 14,
       "passages": [
-        "S",
         "E",
         "W"
       ],
-      "degree": 3,
+      "degree": 2,
       "is_ghost_house": false
     },
     "14,14": {
       "x": 14,
       "y": 14,
-      "passages": [
-        "S",
-        "E",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "15,14": {
-      "x": 15,
-      "y": 14,
-      "passages": [
-        "N",
-        "S",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "16,14": {
-      "x": 16,
-      "y": 14,
-      "passages": [
-        "N",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "17,14": {
-      "x": 17,
-      "y": 14,
-      "passages": [
-        "S",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "18,14": {
-      "x": 18,
-      "y": 14,
-      "passages": [
-        "N",
-        "S"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "0,15": {
-      "x": 0,
-      "y": 15,
-      "passages": [
-        "N",
-        "S",
-        "E"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "1,15": {
-      "x": 1,
-      "y": 15,
-      "passages": [
-        "N",
-        "S",
-        "E",
-        "W"
-      ],
-      "degree": 4,
-      "is_ghost_house": false
-    },
-    "2,15": {
-      "x": 2,
-      "y": 15,
-      "passages": [
-        "N",
-        "E",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "3,15": {
-      "x": 3,
-      "y": 15,
-      "passages": [
-        "N",
-        "S",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "4,15": {
-      "x": 4,
-      "y": 15,
-      "passages": [
-        "N",
-        "S"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "5,15": {
-      "x": 5,
-      "y": 15,
-      "passages": [
-        "S",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "6,15": {
-      "x": 6,
-      "y": 15,
-      "passages": [
-        "N",
-        "S",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "7,15": {
-      "x": 7,
-      "y": 15,
-      "passages": [
-        "N",
-        "S"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "8,15": {
-      "x": 8,
-      "y": 15,
-      "passages": [
-        "N",
-        "S"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "9,15": {
-      "x": 9,
-      "y": 15,
-      "passages": [
-        "N",
-        "S"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "10,15": {
-      "x": 10,
-      "y": 15,
-      "passages": [
-        "N",
-        "S"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "11,15": {
-      "x": 11,
-      "y": 15,
-      "passages": [
-        "N",
-        "S",
-        "E"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "12,15": {
-      "x": 12,
-      "y": 15,
-      "passages": [
-        "N",
-        "S",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "13,15": {
-      "x": 13,
-      "y": 15,
-      "passages": [
-        "N",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "14,15": {
-      "x": 14,
-      "y": 15,
-      "passages": [
-        "N",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "15,15": {
-      "x": 15,
-      "y": 15,
-      "passages": [
-        "N",
-        "S"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "16,15": {
-      "x": 16,
-      "y": 15,
-      "passages": [
-        "S",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "17,15": {
-      "x": 17,
-      "y": 15,
-      "passages": [
-        "N",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "18,15": {
-      "x": 18,
-      "y": 15,
-      "passages": [
-        "N",
-        "S"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "0,16": {
-      "x": 0,
-      "y": 16,
-      "passages": [
-        "N",
-        "S"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "1,16": {
-      "x": 1,
-      "y": 16,
-      "passages": [
-        "N",
-        "S"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "2,16": {
-      "x": 2,
-      "y": 16,
-      "passages": [
-        "S",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "3,16": {
-      "x": 3,
-      "y": 16,
-      "passages": [
-        "N",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "4,16": {
-      "x": 4,
-      "y": 16,
-      "passages": [
-        "N",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "5,16": {
-      "x": 5,
-      "y": 16,
-      "passages": [
-        "N",
-        "S",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "6,16": {
-      "x": 6,
-      "y": 16,
-      "passages": [
-        "N",
-        "S"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "7,16": {
-      "x": 7,
-      "y": 16,
-      "passages": [
-        "N",
-        "S"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "8,16": {
-      "x": 8,
-      "y": 16,
-      "passages": [
-        "N",
-        "S",
-        "E"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "9,16": {
-      "x": 9,
-      "y": 16,
-      "passages": [
-        "N",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "10,16": {
-      "x": 10,
-      "y": 16,
-      "passages": [
-        "N",
-        "S"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "11,16": {
-      "x": 11,
-      "y": 16,
-      "passages": [
-        "N",
-        "S"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "12,16": {
-      "x": 12,
-      "y": 16,
-      "passages": [
-        "N",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "13,16": {
-      "x": 13,
-      "y": 16,
-      "passages": [
-        "E",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "14,16": {
-      "x": 14,
-      "y": 16,
-      "passages": [
-        "E",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "15,16": {
-      "x": 15,
-      "y": 16,
-      "passages": [
-        "N",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "16,16": {
-      "x": 16,
-      "y": 16,
-      "passages": [
-        "N",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "17,16": {
-      "x": 17,
-      "y": 16,
-      "passages": [
-        "E",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "18,16": {
-      "x": 18,
-      "y": 16,
-      "passages": [
-        "N",
-        "S",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "0,17": {
-      "x": 0,
-      "y": 17,
-      "passages": [
-        "N",
-        "S",
-        "E"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "1,17": {
-      "x": 1,
-      "y": 17,
-      "passages": [
-        "N",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "2,17": {
-      "x": 2,
-      "y": 17,
-      "passages": [
-        "N",
-        "S",
-        "E"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "3,17": {
-      "x": 3,
-      "y": 17,
-      "passages": [
-        "S",
-        "E",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "4,17": {
-      "x": 4,
-      "y": 17,
-      "passages": [
-        "E",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "5,17": {
-      "x": 5,
-      "y": 17,
-      "passages": [
-        "N",
-        "S",
-        "E",
-        "W"
-      ],
-      "degree": 4,
-      "is_ghost_house": false
-    },
-    "6,17": {
-      "x": 6,
-      "y": 17,
-      "passages": [
-        "N",
-        "E",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "7,17": {
-      "x": 7,
-      "y": 17,
-      "passages": [
-        "N",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "8,17": {
-      "x": 8,
-      "y": 17,
-      "passages": [
-        "N",
-        "S",
-        "E"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "9,17": {
-      "x": 9,
-      "y": 17,
-      "passages": [
-        "S",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "10,17": {
-      "x": 10,
-      "y": 17,
-      "passages": [
-        "N",
-        "S",
-        "E"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "11,17": {
-      "x": 11,
-      "y": 17,
-      "passages": [
-        "N",
-        "S",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "12,17": {
-      "x": 12,
-      "y": 17,
-      "passages": [
-        "S",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "13,17": {
-      "x": 13,
-      "y": 17,
-      "passages": [
-        "E",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "14,17": {
-      "x": 14,
-      "y": 17,
-      "passages": [
-        "S",
-        "E",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "15,17": {
-      "x": 15,
-      "y": 17,
-      "passages": [
-        "S",
-        "E",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "16,17": {
-      "x": 16,
-      "y": 17,
-      "passages": [
-        "S",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "17,17": {
-      "x": 17,
-      "y": 17,
-      "passages": [
-        "S",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "18,17": {
-      "x": 18,
-      "y": 17,
-      "passages": [
-        "N",
-        "S",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "0,18": {
-      "x": 0,
-      "y": 18,
-      "passages": [
-        "N",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "1,18": {
-      "x": 1,
-      "y": 18,
-      "passages": [
-        "E",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "2,18": {
-      "x": 2,
-      "y": 18,
-      "passages": [
-        "N",
-        "E",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "3,18": {
-      "x": 3,
-      "y": 18,
-      "passages": [
-        "N",
-        "E",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "4,18": {
-      "x": 4,
-      "y": 18,
-      "passages": [
-        "E",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "5,18": {
-      "x": 5,
-      "y": 18,
-      "passages": [
-        "N",
-        "E",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "6,18": {
-      "x": 6,
-      "y": 18,
-      "passages": [
-        "E",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "7,18": {
-      "x": 7,
-      "y": 18,
-      "passages": [
-        "E",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "8,18": {
-      "x": 8,
-      "y": 18,
-      "passages": [
-        "N",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "9,18": {
-      "x": 9,
-      "y": 18,
-      "passages": [
-        "N",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "10,18": {
-      "x": 10,
-      "y": 18,
-      "passages": [
-        "N",
-        "E",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "11,18": {
-      "x": 11,
-      "y": 18,
-      "passages": [
-        "N",
-        "E",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "12,18": {
-      "x": 12,
-      "y": 18,
-      "passages": [
-        "N",
-        "E",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "13,18": {
-      "x": 13,
-      "y": 18,
-      "passages": [
-        "E",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "14,18": {
-      "x": 14,
-      "y": 18,
-      "passages": [
-        "N",
-        "E",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "15,18": {
-      "x": 15,
-      "y": 18,
-      "passages": [
-        "N",
-        "W"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "16,18": {
-      "x": 16,
-      "y": 18,
-      "passages": [
-        "N",
-        "E"
-      ],
-      "degree": 2,
-      "is_ghost_house": false
-    },
-    "17,18": {
-      "x": 17,
-      "y": 18,
-      "passages": [
-        "N",
-        "E",
-        "W"
-      ],
-      "degree": 3,
-      "is_ghost_house": false
-    },
-    "18,18": {
-      "x": 18,
-      "y": 18,
       "passages": [
         "N",
         "W"
