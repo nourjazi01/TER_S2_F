@@ -123,7 +123,12 @@ class ASCIIRenderer:
                         line.append(' ')
                     
                     if col < self.width:
-                        line.append('   ')
+                        # Vérifier si c'est une cellule de la ghost house
+                        cell_key = f"{col},{y}"
+                        if cell_key in self.cells and self.cells[cell_key].get('is_ghost_house', False):
+                            line.append(' G ')  # Marquer la ghost house avec 'G'
+                        else:
+                            line.append('   ')
             
             lines.append(''.join(line))
         
@@ -158,6 +163,7 @@ Dimensions       : {self.width} x {self.height}
 Cellules totales : {total_cells}
 Degré moyen      : {avg_degree:.2f}
 Culs-de-sac      : {dead_ends} (objectif: 0 pour Pac-Man)
+Ghost House      : {'✓ Oui' if self.maze_data['metadata'].get('ghost_house', False) else '✗ Non'}
 Type             : {self.maze_data['metadata']['type']}
 Algorithme       : {self.maze_data['metadata']['algorithm']}
 {'=' * 50}
