@@ -85,8 +85,7 @@ def get_maze():
         generator = MazeGenerator(15, 15)
         current_maze = generator.generate()
     
-    # ERREUR INTENTIONNELLE POUR TESTER CI/CD
-    return jsonify(None)  # BUG: Devrait retourner current_maze
+    return jsonify(current_maze)
 
 
 @app.route('/api/maze-info', methods=['GET'])
