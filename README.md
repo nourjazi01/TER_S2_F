@@ -139,6 +139,10 @@ Deploiement sur Render avec:
 - `RENDER_SERVICE_ID`
 - `RENDER_APP_URL`
 
+URL de deploiement (production):
+
+- https://ter-s2-f.onrender.com
+
 Voir: `DEPLOYMENT.md`
 
 ## Documentation
