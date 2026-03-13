@@ -79,14 +79,13 @@ walls = {(x, y, direction): bool}  # N, S, E, W
 - ✅ `.github/workflows/ci-cd.yml` - Workflow automatisation
 - ✅ Documentation déploiement (`DEPLOYMENT.md`, `TESTING.md`)
 
-**Tests Automatisés :**
-- ✅ Suite de tests complète (51 tests)
-  - 13 tests fonctionnels (structure, dimensions)
-  - 12 tests API (endpoints, validation HTTP)
-  - 19 tests caractéristiques (connectivité, qualité)
-  - 7 tests E2E (end-to-end sur API déployée)
+**Tests Automatisés (ma partie) :**
+- ✅ 13 tests fonctionnels (structure, dimensions, paramètres)
+- ✅ 7 tests E2E (end-to-end sur API déployée)
 - ✅ Configuration pytest avec coverage
 - ✅ Scripts de test manuels (bash/PowerShell)
+
+*Tests caractéristiques (19) et API (12) réalisés par Montasser*
 
 **Intégration Continue :**
 - ✅ Automatisation des tests sur chaque push

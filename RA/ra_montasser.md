@@ -99,6 +99,13 @@
 - ✅ Templates HTML pour interface web
 - ✅ Gestion configuration PORT pour cloud
 
+**Tests Automatisés (ma partie) :**
+- ✅ 19 tests caractéristiques (connexité, dead ends, cycles, score qualité)
+- ✅ 12 tests API (endpoints HTTP, codes statut, validation JSON)
+- ✅ Basés sur `maze_analyzer.py` et les endpoints Flask
+
+*Tests fonctionnels (13) et E2E (7) réalisés par Jazi*
+
 **Endpoints API développés :**
 
 1. **GET /** - Interface web accueil
