@@ -15,5 +15,5 @@ services:
         value: 10000
       - key: MONGODB_URI
         sync: false
-      - key: PacmanMaze
+      - key: MONGODB_DB
         value: pacman_maze
