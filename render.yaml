@@ -14,6 +14,6 @@ services:
       - key: PORT
         value: 10000
       - key: MONGODB_URI
-        sync: false
-      - key: PacmanMaze
+        value: mongodb+srv://nour_db:1234@pacmanmaze.pjvjhwy.mongodb.net/?appName=PacmanMaze
+      - key: MONGODB_DB
         value: pacman_maze

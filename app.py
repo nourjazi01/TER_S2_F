@@ -219,6 +219,34 @@ def load_saved_maze(maze_id):
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    """Health check endpoint with database status."""
+    from database import get_database
+
+    health_info = {
+        'status': 'ok',
+        'mongodb_uri_configured': bool(os.environ.get('MONGODB_URI')),
+        'mongodb_db_configured': bool(os.environ.get('MONGODB_DB')),
+        'mongodb_db_name': os.environ.get('MONGODB_DB', 'not_set'),
+        'database_connected': False
+    }
+
+    # Try to connect to database
+    try:
+        db = get_database()
+        db.command('ping')
+        health_info['database_connected'] = True
+        health_info['database_name'] = db.name
+    except ValueError as e:
+        health_info['error'] = str(e)
+    except Exception as e:
+        health_info['error'] = f"Connection failed: {str(e)}"
+
+    status_code = 200 if health_info['database_connected'] else 503
+    return jsonify(health_info), status_code
+
+
 if __name__ == '__main__':
     # Générer un labyrinthe par défaut au démarrage
     generator = MazeGenerator(15, 15)
