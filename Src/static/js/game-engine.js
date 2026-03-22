@@ -81,12 +81,13 @@ class Entity {
         this.speed = 0;
     }
 
+    // Grid position based on the center of the entity
     get gridX() {
-        return Math.round(this.x / this.cellSize);
+        return Math.floor((this.x + this.cellSize / 2) / this.cellSize);
     }
 
     get gridY() {
-        return Math.round(this.y / this.cellSize);
+        return Math.floor((this.y + this.cellSize / 2) / this.cellSize);
     }
 
     get centerX() {
@@ -97,17 +98,45 @@ class Entity {
         return this.y + this.cellSize / 2;
     }
 
+    // Get the pixel position of the current cell's center
+    get cellCenterX() {
+        return this.gridX * this.cellSize + this.cellSize / 2;
+    }
+
+    get cellCenterY() {
+        return this.gridY * this.cellSize + this.cellSize / 2;
+    }
+
+    // Check if entity is aligned with the grid (at cell center)
     isAtCenter() {
-        const tolerance = this.speed * 1.5;
-        const cellCenterX = this.gridX * this.cellSize + this.cellSize / 2;
-        const cellCenterY = this.gridY * this.cellSize + this.cellSize / 2;
-        const offsetX = Math.abs(this.x + this.cellSize / 2 - cellCenterX);
-        const offsetY = Math.abs(this.y + this.cellSize / 2 - cellCenterY);
+        const tolerance = this.speed + 0.5;
+        const offsetX = Math.abs(this.centerX - this.cellCenterX);
+        const offsetY = Math.abs(this.centerY - this.cellCenterY);
         return offsetX <= tolerance && offsetY <= tolerance;
+    }
+
+    // Check if aligned on a specific axis
+    isAlignedX() {
+        const tolerance = this.speed + 0.5;
+        return Math.abs(this.centerX - this.cellCenterX) <= tolerance;
+    }
+
+    isAlignedY() {
+        const tolerance = this.speed + 0.5;
+        return Math.abs(this.centerY - this.cellCenterY) <= tolerance;
     }
 
     snapToGrid() {
         this.x = this.gridX * this.cellSize;
+        this.y = this.gridY * this.cellSize;
+    }
+
+    // Snap to grid on specific axis
+    snapToGridX() {
+        this.x = this.gridX * this.cellSize;
+    }
+
+    snapToGridY() {
         this.y = this.gridY * this.cellSize;
     }
 }
@@ -118,10 +147,12 @@ class PacMan extends Entity {
         super(x, y, cellSize);
         this.speed = GAME_CONFIG.PACMAN_SPEED;
         this.mouthAngle = 0;
-        this.mouthDirection = 1;
         this.animationFrame = 0;
         this.isDying = false;
         this.deathFrame = 0;
+        this.lastDirection = DIRECTIONS.RIGHT;
+        this.isKeyHeld = false;
+        this.currentKey = null;
     }
 
     update(maze, deltaTime) {
@@ -130,56 +161,124 @@ class PacMan extends Entity {
             return;
         }
 
-        // Animate mouth
-        this.animationFrame += deltaTime * 0.015;
-        this.mouthAngle = Math.abs(Math.sin(this.animationFrame) * 45);
+        // Animate mouth when moving
+        if (this.direction !== DIRECTIONS.NONE) {
+            this.animationFrame += deltaTime * 0.015;
+            this.mouthAngle = Math.abs(Math.sin(this.animationFrame) * 45);
+        }
 
-        // Always try to use next direction if valid (more responsive)
-        if (this.nextDirection !== DIRECTIONS.NONE) {
-            if (this.canMove(this.nextDirection, maze)) {
-                this.direction = this.nextDirection;
-                this.nextDirection = DIRECTIONS.NONE;
-            } else if (this.isAtCenter()) {
-                // Only clear next direction if we're at center and can't move that way
-                this.nextDirection = DIRECTIONS.NONE;
+        this.handleMovement(maze);
+    }
+
+    handleMovement(maze) {
+        const gx = this.gridX;
+        const gy = this.gridY;
+        const atCenter = this.isAtCenter();
+
+        // At cell center: handle direction changes and stopping
+        if (atCenter) {
+            // If key is not held, stop and snap
+            if (!this.isKeyHeld) {
+                this.snapToGrid();
+                this.direction = DIRECTIONS.NONE;
+                return;
+            }
+
+            // Try to move in the requested direction
+            if (this.nextDirection !== DIRECTIONS.NONE) {
+                const canMoveNext = this.canMove(gx, gy, this.nextDirection, maze);
+
+                if (canMoveNext) {
+                    // Only snap when changing direction
+                    if (this.direction !== this.nextDirection) {
+                        this.snapToGrid();
+                    }
+                    this.direction = this.nextDirection;
+                    this.lastDirection = this.direction;
+                } else {
+                    // Can't move in requested direction
+                    if (this.direction !== DIRECTIONS.NONE) {
+                        const canMoveCurrent = this.canMove(gx, gy, this.direction, maze);
+                        if (!canMoveCurrent) {
+                            this.snapToGrid();
+                            this.direction = DIRECTIONS.NONE;
+                        }
+                    } else {
+                        this.direction = DIRECTIONS.NONE;
+                    }
+                }
+            }
+
+            // Final check: if direction is blocked, stop
+            if (this.direction !== DIRECTIONS.NONE && !this.canMove(gx, gy, this.direction, maze)) {
+                this.snapToGrid();
+                this.direction = DIRECTIONS.NONE;
+                return;
             }
         }
 
         // Move in current direction
-        if (this.direction !== DIRECTIONS.NONE && this.canMove(this.direction, maze)) {
+        if (this.direction !== DIRECTIONS.NONE) {
             this.x += this.direction.x * this.speed;
             this.y += this.direction.y * this.speed;
-        } else if (this.direction !== DIRECTIONS.NONE) {
-            // Stop at wall
-            this.direction = DIRECTIONS.NONE;
+            this.handleTunnelWrap(maze);
         }
-
-        // Handle tunnel wrapping
-        this.handleTunnelWrap(maze);
     }
 
-    canMove(direction, maze) {
-        const nextX = this.gridX + direction.x;
-        const nextY = this.gridY + direction.y;
+    canMove(gridX, gridY, direction, maze) {
+        if (!direction || direction === DIRECTIONS.NONE) return false;
 
-        // Allow tunnel wrap
-        if (nextX < 0 || nextX >= maze.width) {
-            return true; // Tunnel
-        }
+        const nextX = gridX + direction.x;
+        const nextY = gridY + direction.y;
 
-        // Check bounds
+        // Check vertical bounds
         if (nextY < 0 || nextY >= maze.height) {
             return false;
         }
 
-        return maze.isPassable(this.gridX, this.gridY, direction);
+        // Handle horizontal wrap (tunnels) - check if moving beyond edges
+        if (nextX < 0 || nextX >= maze.width) {
+            const cellKey = `${gridX},${gridY}`;
+            const cell = maze.cells[cellKey];
+            if (!cell) return false;
+
+            // Allow movement through tunnel if the current cell has the appropriate passage
+            if (direction === DIRECTIONS.LEFT && cell.passages && cell.passages.includes('W')) return true;
+            if (direction === DIRECTIONS.RIGHT && cell.passages && cell.passages.includes('E')) return true;
+            return false;
+        }
+
+        // Use maze's isPassable method
+        if (typeof maze.isPassable === 'function') {
+            return maze.isPassable(gridX, gridY, direction);
+        }
+
+        // Fallback: check passages directly
+        const cellKey = `${gridX},${gridY}`;
+        const cell = maze.cells ? maze.cells[cellKey] : null;
+        if (!cell || !cell.passages) return false;
+
+        let passageKey;
+        if (direction === DIRECTIONS.UP) passageKey = 'N';
+        else if (direction === DIRECTIONS.DOWN) passageKey = 'S';
+        else if (direction === DIRECTIONS.LEFT) passageKey = 'W';
+        else if (direction === DIRECTIONS.RIGHT) passageKey = 'E';
+        else return false;
+
+        return cell.passages.includes(passageKey);
     }
 
     handleTunnelWrap(maze) {
-        if (this.x < -this.cellSize) {
-            this.x = maze.width * this.cellSize;
-        } else if (this.x > maze.width * this.cellSize) {
-            this.x = -this.cellSize;
+        const maxX = maze.width * this.cellSize;
+        const wrapThreshold = this.cellSize / 2;
+
+        // Wrap from left edge to right edge
+        if (this.x < -wrapThreshold) {
+            this.x = maxX - this.cellSize + (this.x + wrapThreshold);
+        }
+        // Wrap from right edge to left edge
+        else if (this.x > maxX - this.cellSize + wrapThreshold) {
+            this.x = this.x - maxX;
         }
     }
 
@@ -189,7 +288,6 @@ class PacMan extends Entity {
         const radius = this.cellSize / 2 - 2;
 
         if (this.isDying) {
-            // Death animation
             const angle = Math.min(this.deathFrame * 180, 360);
             ctx.beginPath();
             ctx.moveTo(cx, cy);
@@ -202,18 +300,17 @@ class PacMan extends Entity {
             return;
         }
 
-        // Calculate rotation based on direction
+        const drawDirection = this.direction !== DIRECTIONS.NONE ? this.direction : this.lastDirection;
         let rotation = 0;
-        if (this.direction === DIRECTIONS.RIGHT) rotation = 0;
-        else if (this.direction === DIRECTIONS.DOWN) rotation = 90;
-        else if (this.direction === DIRECTIONS.LEFT) rotation = 180;
-        else if (this.direction === DIRECTIONS.UP) rotation = 270;
+        if (drawDirection === DIRECTIONS.RIGHT) rotation = 0;
+        else if (drawDirection === DIRECTIONS.DOWN) rotation = 90;
+        else if (drawDirection === DIRECTIONS.LEFT) rotation = 180;
+        else if (drawDirection === DIRECTIONS.UP) rotation = 270;
 
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate(rotation * Math.PI / 180);
 
-        // Draw Pac-Man with mouth
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.arc(0, 0, radius,
@@ -227,11 +324,15 @@ class PacMan extends Entity {
     }
 
     setDirection(direction) {
+        this.isKeyHeld = true;
         this.nextDirection = direction;
-        // Try to change direction immediately if possible
-        if (this.direction === DIRECTIONS.NONE || direction === DIRECTIONS.NONE) {
-            this.direction = direction;
-        }
+        this.lastDirection = direction;
+        this.currentKey = direction.name;
+    }
+
+    stopMovement() {
+        this.isKeyHeld = false;
+        this.currentKey = null;
     }
 
     die() {
@@ -246,6 +347,9 @@ class PacMan extends Entity {
         this.nextDirection = DIRECTIONS.NONE;
         this.isDying = false;
         this.deathFrame = 0;
+        this.lastDirection = DIRECTIONS.RIGHT;
+        this.isKeyHeld = false;
+        this.currentKey = null;
     }
 }
 
@@ -329,10 +433,16 @@ class Ghost extends Entity {
     }
 
     handleTunnelWrap(maze) {
-        if (this.x < -this.cellSize) {
-            this.x = maze.width * this.cellSize;
-        } else if (this.x > maze.width * this.cellSize) {
-            this.x = -this.cellSize;
+        const maxX = maze.width * this.cellSize;
+        const wrapThreshold = this.cellSize / 2;
+
+        // Wrap from left edge to right edge
+        if (this.x < -wrapThreshold) {
+            this.x = maxX - this.cellSize + (this.x + wrapThreshold);
+        }
+        // Wrap from right edge to left edge
+        else if (this.x > maxX - this.cellSize + wrapThreshold) {
+            this.x = this.x - maxX;
         }
     }
 
@@ -394,8 +504,16 @@ class Ghost extends Entity {
         let bestDistance = Infinity;
 
         for (const dir of possibleDirections) {
-            const nextX = this.gridX + dir.x;
-            const nextY = this.gridY + dir.y;
+            let nextX = this.gridX + dir.x;
+            let nextY = this.gridY + dir.y;
+
+            // Handle wraparound for tunnel distances
+            if (nextX < 0) {
+                nextX = maze.width - 1;
+            } else if (nextX >= maze.width) {
+                nextX = 0;
+            }
+
             const distance = this.calculateDistance(nextX, nextY, target.x, target.y);
 
             if (distance < bestDistance) {
@@ -720,11 +838,59 @@ class GameMaze {
     }
 
     getStartPosition() {
-        // Find a good starting position (bottom center)
-        return {
-            x: Math.floor(this.width / 2),
-            y: this.height - 2
+        // Find a good starting position (bottom center area)
+        const centerX = Math.floor(this.width / 2);
+        const bottomY = this.height - 2;
+
+        // Helper to check if a cell is valid for starting
+        const isValidStart = (cell) => {
+            if (!cell || cell.is_ghost_house) return false;
+            // Must have at least one passage
+            return cell.passages && cell.passages.length > 0;
         };
+
+        // Try to find a valid cell near the bottom center
+        const candidates = [
+            { x: centerX, y: bottomY },
+            { x: centerX, y: bottomY - 1 },
+            { x: centerX - 1, y: bottomY },
+            { x: centerX + 1, y: bottomY },
+            { x: centerX, y: this.height - 3 },
+            { x: centerX - 1, y: bottomY - 1 },
+            { x: centerX + 1, y: bottomY - 1 },
+        ];
+
+        for (const pos of candidates) {
+            const cellKey = `${pos.x},${pos.y}`;
+            const cell = this.cells[cellKey];
+            if (isValidStart(cell)) {
+                console.log('Pacman start position:', pos, 'passages:', cell.passages);
+                return pos;
+            }
+        }
+
+        // Fallback: find any valid cell (preferring bottom half)
+        let bestCell = null;
+        let bestY = -1;
+
+        for (const [key, cell] of Object.entries(this.cells)) {
+            if (isValidStart(cell)) {
+                const [x, y] = key.split(',').map(Number);
+                // Prefer cells in the bottom half
+                if (y > bestY) {
+                    bestY = y;
+                    bestCell = { x, y };
+                }
+            }
+        }
+
+        if (bestCell) {
+            console.log('Pacman fallback start position:', bestCell);
+            return bestCell;
+        }
+
+        console.warn('No valid start position found!');
+        return { x: centerX, y: bottomY };
     }
 
     getGhostHouseCenter() {
@@ -1249,6 +1415,16 @@ class GameEngine {
                     this.resume();
                 }
                 break;
+        }
+    }
+
+    handleKeyUp(key) {
+        // Stop Pacman when arrow key is released
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+             'w', 'a', 's', 'd', 'W', 'A', 'S', 'D'].includes(key)) {
+            if (this.pacman) {
+                this.pacman.stopMovement();
+            }
         }
     }
 

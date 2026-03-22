@@ -584,9 +584,12 @@ let isRecordingGame = false;
 function setupGame() {
     // Keyboard controls handled by game engine
     document.addEventListener('keydown', handleGameInput);
+    document.addEventListener('keyup', handleGameInputKeyUp);
 }
 
 function initGame() {
+    console.log('initGame called, currentMaze:', !!state.currentMaze);
+
     if (!state.currentMaze) {
         showNotification('Generate a maze first!', 'error');
         return;
@@ -604,7 +607,9 @@ function initGame() {
     }
 
     // Create new game engine
+    console.log('Creating GameEngine with maze:', state.currentMaze);
     gameEngine = new GameEngine(gameCanvas, state.currentMaze);
+    console.log('GameEngine created:', !!gameEngine);
 
     // Set callbacks
     gameEngine.onScoreChange = (score) => {
@@ -675,38 +680,64 @@ function initGame() {
 
 function handleGameInput(e) {
     if (state.currentTab !== 'play') return;
-    if (!gameEngine) return;
 
     const key = e.key;
 
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd', 'W', 'A', 'S', 'D'].includes(key)) {
         e.preventDefault();
 
-        // Always pass to game engine
-        gameEngine.handleKeyDown(key);
+        // Initialize game if needed
+        if (!gameEngine) {
+            initGame();
+        }
 
         // Start game if not playing
-        if (!state.game.isPlaying) {
+        if (!state.game.isPlaying && gameEngine) {
             startGame();
+        }
+
+        // Pass input to game engine
+        if (gameEngine) {
+            gameEngine.handleKeyDown(key);
         }
     }
 
     if (key === ' ' || key === 'Enter') {
         e.preventDefault();
-        if (!state.game.isPlaying) {
+        if (!gameEngine) {
+            initGame();
+        }
+        if (!state.game.isPlaying && gameEngine) {
             startGame();
-        } else {
+        } else if (gameEngine) {
             gameEngine.handleKeyDown(key);
         }
     }
 
     if (key === 'Escape' || key === 'p' || key === 'P') {
         e.preventDefault();
-        gameEngine.handleKeyDown(key);
+        if (gameEngine) {
+            gameEngine.handleKeyDown(key);
+        }
+    }
+}
+
+function handleGameInputKeyUp(e) {
+    if (state.currentTab !== 'play') return;
+    if (!gameEngine) return;
+
+    const key = e.key;
+
+    // Stop Pacman movement when arrow key is released
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd', 'W', 'A', 'S', 'D'].includes(key)) {
+        e.preventDefault();
+        gameEngine.handleKeyUp(key);
     }
 }
 
 function startGame() {
+    console.log('startGame called, gameEngine:', !!gameEngine);
+
     if (!gameEngine) {
         initGame();
         return;
@@ -716,6 +747,7 @@ function startGame() {
     const overlay = document.getElementById('gameOverlay');
     if (overlay) overlay.classList.add('hidden');
 
+    console.log('Calling gameEngine.start()');
     gameEngine.start();
     showNotification('Game started! Use arrow keys to move', 'success');
 }
