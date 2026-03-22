@@ -121,7 +121,10 @@
             <!-- Action Buttons -->
             <div class="action-buttons">
                 <button id="generateBtn" class="btn btn-primary">GENERATE MAZE</button>
-                <button id="saveBtn" class="btn btn-success">SAVE TO GALLERY</button>
+                <div class="save-group" style="display: flex; gap: 10px; align-items: center;">
+                    <input type="text" id="mazeName" class="input-number" placeholder="Maze name..." style="width: 180px;">
+                    <button id="saveBtn" class="btn btn-success">SAVE TO GALLERY</button>
+                </div>
             </div>
 
             <!-- Maze Display -->
@@ -206,8 +209,12 @@
                         <div class="stat-value" id="gameScore">000000</div>
                     </div>
                     <div class="stat-item">
+                        <div class="stat-label">TIME</div>
+                        <div class="stat-value" id="gameTimer">00:00</div>
+                    </div>
+                    <div class="stat-item">
                         <div class="stat-label">LIVES</div>
-                        <div class="stat-value" id="gameLives">●●●</div>
+                        <div class="stat-value" id="gameLives">&#9679;&#9679;&#9679;</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-label">LEVEL</div>
@@ -225,13 +232,21 @@
                     </div>
                 </div>
 
+                <div class="game-buttons" style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
+                    <button class="btn btn-primary" onclick="restartGame()">RESTART</button>
+                    <button class="btn btn-secondary" onclick="pauseGame()">PAUSE</button>
+                    <button id="recordBtn" class="btn btn-danger" onclick="toggleRecording()">RECORD</button>
+                    <button class="btn btn-secondary" onclick="playLastRecording()">REPLAY</button>
+                    <button class="btn btn-secondary" onclick="downloadRecording()">DOWNLOAD</button>
+                </div>
+
                 <div class="game-controls-hint">
                     <p>Controls:</p>
                     <div class="key-hint">
-                        <span class="key">↑</span>
-                        <span class="key">↓</span>
-                        <span class="key">←</span>
-                        <span class="key">→</span>
+                        <span class="key">&#8593;</span>
+                        <span class="key">&#8595;</span>
+                        <span class="key">&#8592;</span>
+                        <span class="key">&#8594;</span>
                     </div>
                     <div class="key-hint">
                         <span class="key">W</span>
@@ -239,6 +254,9 @@
                         <span class="key">S</span>
                         <span class="key">D</span>
                     </div>
+                    <p style="margin-top: 10px; font-size: 7px; color: var(--text-muted);">
+                        P/ESC = Pause | SPACE = Start/Resume
+                    </p>
                 </div>
             </div>
         </section>
@@ -325,6 +343,7 @@
 
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/static/js/game-engine.js"></script>
     <script src="/static/js/app.js"></script>
 </body>
 </html>

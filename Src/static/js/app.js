@@ -344,11 +344,18 @@ async function saveMaze() {
         return;
     }
 
+    // Get custom name if provided
+    const customNameInput = document.getElementById('mazeName');
+    const customName = customNameInput?.value.trim() || null;
+
     try {
-        const response = await axios.post('/api/mazes/save', {});
+        const response = await axios.post('/api/mazes/save', {
+            name: customName
+        });
 
         if (response.data.success) {
             showNotification(`Saved: ${response.data.name}`, 'success');
+            if (customNameInput) customNameInput.value = '';
             loadGallery();
         }
     } catch (error) {
@@ -571,8 +578,11 @@ function nextPage() {
 }
 
 // ============ GAME MODE ============
+let gameEngine = null;
+let isRecordingGame = false;
+
 function setupGame() {
-    // Keyboard controls
+    // Keyboard controls handled by game engine
     document.addEventListener('keydown', handleGameInput);
 }
 
@@ -582,13 +592,64 @@ function initGame() {
         return;
     }
 
-    const width = state.currentMaze.metadata.width;
-    const height = state.currentMaze.metadata.height;
-
-    if (gameCanvas) {
-        resizeCanvas(gameCanvas, width, height);
-        drawMaze(gameCtx, state.currentMaze, { showPellets: true });
+    // Clean up previous game engine
+    if (gameEngine) {
+        gameEngine.stop();
     }
+
+    // Make sure the canvas can receive focus
+    if (gameCanvas) {
+        gameCanvas.setAttribute('tabindex', '0');
+        gameCanvas.focus();
+    }
+
+    // Create new game engine
+    gameEngine = new GameEngine(gameCanvas, state.currentMaze);
+
+    // Set callbacks
+    gameEngine.onScoreChange = (score) => {
+        updateGameStats();
+        state.game.score = score;
+    };
+
+    gameEngine.onLivesChange = (lives) => {
+        updateGameStats();
+        state.game.lives = lives;
+    };
+
+    gameEngine.onTimeUpdate = (seconds) => {
+        const timerEl = document.getElementById('gameTimer');
+        if (timerEl) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            timerEl.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+    };
+
+    gameEngine.onGameOver = (score, level) => {
+        const overlay = document.getElementById('gameOverlay');
+        const title = overlay?.querySelector('.game-overlay-title');
+        const subtitle = overlay?.querySelector('.game-overlay-subtitle');
+
+        if (overlay) {
+            overlay.classList.remove('hidden');
+            if (title) title.textContent = 'GAME OVER';
+            if (subtitle) subtitle.textContent = `Score: ${score} | Level: ${level}`;
+        }
+
+        // Stop recording if active
+        if (isRecordingGame) {
+            stopRecordingGame();
+        }
+    };
+
+    gameEngine.onLevelComplete = (level, score) => {
+        showNotification(`Level ${level} Complete! Score: ${score}`, 'success');
+
+        setTimeout(() => {
+            gameEngine.nextLevel();
+        }, 2000);
+    };
 
     // Reset game state
     state.game.score = 0;
@@ -596,38 +657,181 @@ function initGame() {
     state.game.isPlaying = false;
 
     updateGameStats();
+
+    // Draw initial state
+    gameEngine.draw();
+
+    // Show ready overlay
+    const overlay = document.getElementById('gameOverlay');
+    const title = overlay?.querySelector('.game-overlay-title');
+    const subtitle = overlay?.querySelector('.game-overlay-subtitle');
+
+    if (overlay) {
+        overlay.classList.remove('hidden');
+        if (title) title.textContent = 'READY!';
+        if (subtitle) subtitle.textContent = 'Press SPACE or ENTER to start';
+    }
 }
 
 function handleGameInput(e) {
     if (state.currentTab !== 'play') return;
+    if (!gameEngine) return;
 
     const key = e.key;
 
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(key)) {
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd', 'W', 'A', 'S', 'D'].includes(key)) {
         e.preventDefault();
 
+        // Always pass to game engine
+        gameEngine.handleKeyDown(key);
+
+        // Start game if not playing
         if (!state.game.isPlaying) {
             startGame();
         }
-
-        // Handle movement (placeholder for actual game logic)
-        console.log('Move:', key);
     }
 
     if (key === ' ' || key === 'Enter') {
         e.preventDefault();
         if (!state.game.isPlaying) {
             startGame();
+        } else {
+            gameEngine.handleKeyDown(key);
         }
+    }
+
+    if (key === 'Escape' || key === 'p' || key === 'P') {
+        e.preventDefault();
+        gameEngine.handleKeyDown(key);
     }
 }
 
 function startGame() {
+    if (!gameEngine) {
+        initGame();
+        return;
+    }
+
     state.game.isPlaying = true;
     const overlay = document.getElementById('gameOverlay');
     if (overlay) overlay.classList.add('hidden');
 
+    gameEngine.start();
     showNotification('Game started! Use arrow keys to move', 'success');
+}
+
+function pauseGame() {
+    if (gameEngine) {
+        gameEngine.pause();
+        state.game.isPlaying = false;
+
+        const overlay = document.getElementById('gameOverlay');
+        const title = overlay?.querySelector('.game-overlay-title');
+        const subtitle = overlay?.querySelector('.game-overlay-subtitle');
+
+        if (overlay) {
+            overlay.classList.remove('hidden');
+            if (title) title.textContent = 'PAUSED';
+            if (subtitle) subtitle.textContent = 'Press SPACE to resume';
+        }
+    }
+}
+
+function restartGame() {
+    if (gameEngine) {
+        gameEngine.stop();
+    }
+    initGame();
+}
+
+// ============ GAME RECORDING ============
+function startRecordingGame() {
+    if (!gameEngine) {
+        showNotification('Start a game first!', 'error');
+        return;
+    }
+
+    isRecordingGame = true;
+    gameEngine.startRecording();
+
+    const recordBtn = document.getElementById('recordBtn');
+    if (recordBtn) {
+        recordBtn.classList.add('recording');
+        recordBtn.textContent = 'STOP REC';
+    }
+
+    showNotification('Recording started', 'success');
+}
+
+function stopRecordingGame() {
+    if (!gameEngine || !isRecordingGame) return;
+
+    const recordingData = gameEngine.stopRecording();
+    isRecordingGame = false;
+
+    const recordBtn = document.getElementById('recordBtn');
+    if (recordBtn) {
+        recordBtn.classList.remove('recording');
+        recordBtn.textContent = 'RECORD';
+    }
+
+    if (recordingData) {
+        // Save recording to localStorage or download
+        const recordingJson = JSON.stringify(recordingData);
+        localStorage.setItem('lastGameRecording', recordingJson);
+
+        showNotification(`Recording saved! ${recordingData.frames.length} frames`, 'success');
+    }
+}
+
+function toggleRecording() {
+    if (isRecordingGame) {
+        stopRecordingGame();
+    } else {
+        startRecordingGame();
+    }
+}
+
+function playLastRecording() {
+    const recordingJson = localStorage.getItem('lastGameRecording');
+    if (!recordingJson) {
+        showNotification('No recording found', 'error');
+        return;
+    }
+
+    try {
+        const recordingData = JSON.parse(recordingJson);
+
+        if (!gameEngine) {
+            initGame();
+        }
+
+        gameEngine.loadReplay(recordingData);
+        gameEngine.startReplay();
+
+        showNotification('Playing recording...', 'success');
+    } catch (error) {
+        showNotification('Failed to load recording', 'error');
+        console.error('Recording error:', error);
+    }
+}
+
+function downloadRecording() {
+    const recordingJson = localStorage.getItem('lastGameRecording');
+    if (!recordingJson) {
+        showNotification('No recording to download', 'error');
+        return;
+    }
+
+    const blob = new Blob([recordingJson], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pacman-recording-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    showNotification('Recording downloaded', 'success');
 }
 
 function updateGameStats() {
@@ -635,9 +839,13 @@ function updateGameStats() {
     const livesEl = document.getElementById('gameLives');
     const levelEl = document.getElementById('gameLevel');
 
-    if (scoreEl) scoreEl.textContent = state.game.score.toString().padStart(6, '0');
-    if (livesEl) livesEl.textContent = '●'.repeat(state.game.lives);
-    if (levelEl) levelEl.textContent = state.game.level;
+    const score = gameEngine ? gameEngine.score : state.game.score;
+    const lives = gameEngine ? gameEngine.lives : state.game.lives;
+    const level = gameEngine ? gameEngine.level : state.game.level;
+
+    if (scoreEl) scoreEl.textContent = score.toString().padStart(6, '0');
+    if (livesEl) livesEl.textContent = '\u25CF'.repeat(lives);
+    if (levelEl) levelEl.textContent = level;
 }
 
 // ============ UTILITIES ============
@@ -680,6 +888,12 @@ function escapeHtml(text) {
 // ============ EXPORT FOR GLOBAL ACCESS ============
 window.loadMazeFromGallery = loadMazeFromGallery;
 window.deleteMaze = deleteMaze;
+window.startGame = startGame;
+window.pauseGame = pauseGame;
+window.restartGame = restartGame;
+window.toggleRecording = toggleRecording;
+window.playLastRecording = playLastRecording;
+window.downloadRecording = downloadRecording;
 
 // ============ START ============
 document.addEventListener('DOMContentLoaded', init);
