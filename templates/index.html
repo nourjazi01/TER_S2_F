@@ -349,6 +349,165 @@
         .error.show {
             display: block;
         }
+
+        /* Save Button */
+        .save-btn {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .save-btn:hover {
+            background: linear-gradient(135deg, #45a049, #3d8b40);
+        }
+
+        .save-status {
+            color: #4CAF50;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .save-status.error {
+            color: #ff6b6b;
+        }
+
+        /* Maze Gallery */
+        .maze-gallery-section {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .gallery-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .gallery-title {
+            color: #1e3c72;
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+
+        .refresh-btn {
+            background: #1e3c72;
+            color: white;
+            padding: 8px 15px;
+            font-size: 0.9em;
+        }
+
+        .maze-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .maze-card {
+            background: #f5f5f5;
+            border: 2px solid #1e3c72;
+            border-radius: 8px;
+            padding: 15px;
+            transition: all 0.2s;
+        }
+
+        .maze-card:hover {
+            background: #e8e8e8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .maze-card-name {
+            font-weight: bold;
+            color: #1e3c72;
+            font-size: 1.1em;
+            margin-bottom: 8px;
+        }
+
+        .maze-card-info {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .maze-card-date {
+            font-size: 0.8em;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .maze-card-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .load-btn {
+            background: #1e3c72;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            flex: 1;
+        }
+
+        .load-btn:hover {
+            background: #2a5098;
+        }
+
+        .delete-btn {
+            background: #ff6b6b;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+        }
+
+        .delete-btn:hover {
+            background: #ff5252;
+        }
+
+        .gallery-pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .gallery-pagination button {
+            padding: 8px 15px;
+            font-size: 0.9em;
+        }
+
+        .gallery-pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .gallery-empty {
+            text-align: center;
+            color: #888;
+            padding: 40px;
+            font-style: italic;
+        }
+
+        .gallery-loading {
+            text-align: center;
+            color: #1e3c72;
+            padding: 40px;
+        }
+
+        .gallery-error {
+            text-align: center;
+            color: #ff6b6b;
+            padding: 20px;
+        }
     </style>
 </head>
 <body>
@@ -370,8 +529,10 @@
                 <input type="number" id="height" value="15" min="5" max="50">
             </div>
             <button id="generateBtn">Générer Labyrinthe</button>
-            <button class="toggle-advanced" id="toggleAdvanced">⚙️ Paramètres</button>
-            <span class="loading" id="loading">⏳ Génération en cours...</span>
+            <button id="saveBtn" class="save-btn">Sauvegarder</button>
+            <button class="toggle-advanced" id="toggleAdvanced">Paramètres</button>
+            <span class="loading" id="loading">Génération en cours...</span>
+            <span class="save-status" id="saveStatus"></span>
         </div>
 
         <div class="advanced-controls" id="advancedControls">
@@ -454,6 +615,22 @@
                 </div>
             </div>
         </div>
+
+        <!-- Maze Gallery Section -->
+        <div class="maze-gallery-section">
+            <div class="gallery-header">
+                <span class="gallery-title">Labyrinthes Sauvegardés</span>
+                <button id="refreshGalleryBtn" class="refresh-btn">Rafraîchir</button>
+            </div>
+            <div class="maze-gallery" id="mazeGallery">
+                <!-- Dynamically populated -->
+            </div>
+            <div class="gallery-pagination">
+                <button id="prevPage" disabled>Précédent</button>
+                <span id="pageInfo">Page 1 / 1</span>
+                <button id="nextPage" disabled>Suivant</button>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
@@ -474,22 +651,25 @@
         function init() {
             canvas = document.getElementById('mazeCanvas');
             ctx = canvas.getContext('2d');
-            
+
             document.getElementById('generateBtn').addEventListener('click', generateMaze);
             document.getElementById('toggleAdvanced').addEventListener('click', toggleAdvanced);
-            
+
             // Event listeners pour les sliders
             document.getElementById('playabilitySlider').addEventListener('input', updatePlayabilityValue);
             document.getElementById('deadEndSlider').addEventListener('input', updateDeadEndValue);
             document.getElementById('cycleSlider').addEventListener('input', updateCycleValue);
-            
+
             // Event listeners pour les presets
             document.querySelectorAll('.preset-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
                     setPreset(this.dataset.preset);
                 });
             });
-            
+
+            // Initialize gallery
+            initGallery();
+
             // Générer un labyrinthe par défaut au chargement
             generateMaze();
         }
@@ -720,6 +900,189 @@
 
         function hideError() {
             document.getElementById('error').classList.remove('show');
+        }
+
+        // ============= Gallery Functions =============
+
+        // Gallery state
+        let galleryOffset = 0;
+        const GALLERY_LIMIT = 12;
+        let galleryTotal = 0;
+
+        function initGallery() {
+            document.getElementById('saveBtn').addEventListener('click', saveMaze);
+            document.getElementById('refreshGalleryBtn').addEventListener('click', loadGallery);
+            document.getElementById('prevPage').addEventListener('click', prevPage);
+            document.getElementById('nextPage').addEventListener('click', nextPage);
+
+            // Load gallery on page load
+            loadGallery();
+        }
+
+        async function saveMaze() {
+            const saveStatus = document.getElementById('saveStatus');
+            saveStatus.textContent = 'Sauvegarde...';
+            saveStatus.classList.remove('error');
+
+            try {
+                const response = await axios.post('/api/mazes/save', {});
+
+                if (response.data.success) {
+                    saveStatus.textContent = 'Sauvegardé: ' + response.data.name;
+                    // Refresh gallery
+                    loadGallery();
+                    // Clear status after 3 seconds
+                    setTimeout(() => { saveStatus.textContent = ''; }, 3000);
+                }
+            } catch (error) {
+                saveStatus.textContent = 'Erreur de sauvegarde';
+                saveStatus.classList.add('error');
+                console.error('Save error:', error);
+
+                if (error.response && error.response.status === 503) {
+                    saveStatus.textContent = 'Base de données non configurée';
+                }
+            }
+        }
+
+        async function loadGallery() {
+            const gallery = document.getElementById('mazeGallery');
+            gallery.innerHTML = '<div class="gallery-loading">Chargement...</div>';
+
+            try {
+                const response = await axios.get('/api/mazes', {
+                    params: {
+                        limit: GALLERY_LIMIT,
+                        offset: galleryOffset,
+                        sort: 'newest'
+                    }
+                });
+
+                const data = response.data;
+                galleryTotal = data.total;
+
+                if (data.mazes.length === 0) {
+                    gallery.innerHTML = '<div class="gallery-empty">Aucun labyrinthe sauvegardé</div>';
+                } else {
+                    gallery.innerHTML = data.mazes.map(maze => `
+                        <div class="maze-card">
+                            <div class="maze-card-name">${escapeHtml(maze.name)}</div>
+                            <div class="maze-card-info">
+                                ${maze.metadata.width} x ${maze.metadata.height}
+                            </div>
+                            <div class="maze-card-date">
+                                ${formatDate(maze.created_at)}
+                            </div>
+                            <div class="maze-card-actions">
+                                <button class="load-btn" onclick="loadMazeFromGallery('${maze._id}')">
+                                    Charger
+                                </button>
+                                <button class="delete-btn" onclick="deleteMazeFromGallery('${maze._id}')">
+                                    Supprimer
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                updatePagination();
+            } catch (error) {
+                if (error.response && error.response.status === 503) {
+                    gallery.innerHTML = '<div class="gallery-empty">Base de données non configurée</div>';
+                } else {
+                    gallery.innerHTML = '<div class="gallery-error">Erreur de chargement</div>';
+                }
+                console.error('Gallery error:', error);
+            }
+        }
+
+        async function loadMazeFromGallery(mazeId) {
+            showLoading(true);
+
+            try {
+                const response = await axios.post(`/api/mazes/${mazeId}/load`);
+
+                if (response.data.success) {
+                    currentMaze = response.data.maze;
+                    const width = currentMaze.metadata.width;
+                    const height = currentMaze.metadata.height;
+
+                    // Update UI
+                    document.getElementById('width').value = width;
+                    document.getElementById('height').value = height;
+
+                    resizeCanvas(width, height);
+                    drawMaze(currentMaze);
+                    updateInfo(currentMaze);
+
+                    // Show notification
+                    const saveStatus = document.getElementById('saveStatus');
+                    saveStatus.textContent = 'Chargé: ' + response.data.loaded_from;
+                    saveStatus.classList.remove('error');
+                    setTimeout(() => { saveStatus.textContent = ''; }, 3000);
+                }
+            } catch (error) {
+                showError('Erreur lors du chargement');
+                console.error('Load error:', error);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function deleteMazeFromGallery(mazeId) {
+            if (!confirm('Supprimer ce labyrinthe ?')) {
+                return;
+            }
+
+            try {
+                await axios.delete(`/api/mazes/${mazeId}`);
+                loadGallery();
+            } catch (error) {
+                showError('Erreur lors de la suppression');
+                console.error('Delete error:', error);
+            }
+        }
+
+        function formatDate(isoString) {
+            const date = new Date(isoString);
+            return date.toLocaleDateString('fr-FR', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function updatePagination() {
+            const prevBtn = document.getElementById('prevPage');
+            const nextBtn = document.getElementById('nextPage');
+            const pageInfo = document.getElementById('pageInfo');
+
+            const currentPage = Math.floor(galleryOffset / GALLERY_LIMIT) + 1;
+            const totalPages = Math.ceil(galleryTotal / GALLERY_LIMIT) || 1;
+
+            prevBtn.disabled = galleryOffset === 0;
+            nextBtn.disabled = galleryOffset + GALLERY_LIMIT >= galleryTotal;
+            pageInfo.textContent = `Page ${currentPage} / ${totalPages}`;
+        }
+
+        function prevPage() {
+            galleryOffset = Math.max(0, galleryOffset - GALLERY_LIMIT);
+            loadGallery();
+        }
+
+        function nextPage() {
+            if (galleryOffset + GALLERY_LIMIT < galleryTotal) {
+                galleryOffset += GALLERY_LIMIT;
+                loadGallery();
+            }
         }
 
         // Démarrer

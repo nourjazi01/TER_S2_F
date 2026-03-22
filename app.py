@@ -7,10 +7,15 @@ import sys
 import os
 import json
 
+# Load environment variables from .env file
+from dotenv import load_dotenv
+load_dotenv()
+
 # Ajouter le répertoire Src au chemin Python
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'Src'))
 
 from maze_generator import MazeGenerator
+from database import save_maze, list_mazes, get_maze as db_get_maze, delete_maze
 
 app = Flask(__name__)
 
@@ -92,10 +97,10 @@ def get_maze():
 def get_maze_info():
     """Retourne les informations du labyrinthe actuel."""
     global current_maze
-    
+
     if current_maze is None:
         return jsonify({'error': 'Aucun labyrinthe généré'}), 404
-    
+
     metadata = current_maze.get('metadata', {})
     return jsonify({
         'width': metadata.get('width'),
@@ -104,6 +109,113 @@ def get_maze_info():
         'has_warp_tunnels': metadata.get('has_warp_tunnels'),
         'cell_count': len(current_maze.get('cells', {}))
     })
+
+
+# ============= Maze Storage API Endpoints =============
+
+@app.route('/api/mazes/save', methods=['POST'])
+def save_current_maze():
+    """Save the current maze to database."""
+    global current_maze
+
+    if current_maze is None:
+        return jsonify({'error': 'Aucun labyrinthe à sauvegarder'}), 400
+
+    data = request.get_json() or {}
+    custom_name = data.get('name')
+
+    try:
+        result = save_maze(current_maze, custom_name)
+        return jsonify({
+            'success': True,
+            **result
+        }), 201
+    except ValueError as e:
+        # MONGODB_URI not set
+        return jsonify({'error': str(e)}), 503
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/mazes', methods=['GET'])
+def get_saved_mazes():
+    """List all saved mazes."""
+    limit = request.args.get('limit', 20, type=int)
+    offset = request.args.get('offset', 0, type=int)
+    sort = request.args.get('sort', 'newest')
+
+    # Validate parameters
+    limit = min(limit, 100)  # Max 100 per request
+
+    try:
+        result = list_mazes(limit, offset, sort)
+        return jsonify(result)
+    except ValueError as e:
+        # MONGODB_URI not set
+        return jsonify({'error': str(e)}), 503
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/mazes/<maze_id>', methods=['GET'])
+def get_saved_maze(maze_id):
+    """Get a specific saved maze."""
+    try:
+        maze = db_get_maze(maze_id)
+
+        if maze is None:
+            return jsonify({'error': 'Labyrinthe non trouvé'}), 404
+
+        return jsonify(maze)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 503
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/mazes/<maze_id>', methods=['DELETE'])
+def delete_saved_maze(maze_id):
+    """Delete a saved maze."""
+    try:
+        if delete_maze(maze_id):
+            return jsonify({
+                'success': True,
+                'deleted_id': maze_id
+            })
+        else:
+            return jsonify({'error': 'Labyrinthe non trouvé'}), 404
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 503
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/mazes/<maze_id>/load', methods=['POST'])
+def load_saved_maze(maze_id):
+    """Load a saved maze as the current maze."""
+    global current_maze
+
+    try:
+        maze = db_get_maze(maze_id)
+
+        if maze is None:
+            return jsonify({'error': 'Labyrinthe non trouvé'}), 404
+
+        # Set as current maze (remove MongoDB-specific fields)
+        current_maze = {
+            'metadata': maze['metadata'],
+            'cells': maze['cells']
+        }
+
+        return jsonify({
+            'success': True,
+            'maze': current_maze,
+            'loaded_from': maze['name']
+        })
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 503
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 if __name__ == '__main__':
