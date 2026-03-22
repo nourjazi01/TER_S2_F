@@ -1,0 +1,685 @@
+/**
+ * PAC-MAN Maze Generator - Main Application
+ */
+
+// ============ CONFIGURATION ============
+const CONFIG = {
+    CELL_SIZE: 20,
+    COLORS: {
+        wall: '#2121DE',
+        wallHighlight: '#5252FF',
+        passage: '#000000',
+        tunnel: '#FFB8FF',
+        ghostHouse: '#FF0000',
+        pellet: '#FFCC99',
+        powerPellet: '#FFFF00',
+        pacman: '#FFFF00',
+        ghostRed: '#FF0000',
+        ghostPink: '#FFB8FF',
+        ghostCyan: '#00FFFF',
+        ghostOrange: '#FFB852'
+    },
+    PRESETS: {
+        easy: { playability: 0.2, deadEnd: 0.0, cycle: 0.8 },
+        medium: { playability: 0.5, deadEnd: 0.0, cycle: 0.5 },
+        hard: { playability: 0.9, deadEnd: 0.2, cycle: 0.2 }
+    },
+    GALLERY_LIMIT: 12
+};
+
+// ============ STATE ============
+const state = {
+    currentMaze: null,
+    currentPreset: 'easy',
+    currentTab: 'generate',
+    gallery: {
+        offset: 0,
+        total: 0
+    },
+    game: {
+        isPlaying: false,
+        score: 0,
+        lives: 3,
+        level: 1
+    }
+};
+
+// ============ DOM ELEMENTS ============
+let canvas, ctx;
+let gameCanvas, gameCtx;
+
+// ============ INITIALIZATION ============
+function init() {
+    // Get canvas elements
+    canvas = document.getElementById('mazeCanvas');
+    ctx = canvas.getContext('2d');
+
+    gameCanvas = document.getElementById('gameCanvas');
+    if (gameCanvas) {
+        gameCtx = gameCanvas.getContext('2d');
+    }
+
+    // Setup event listeners
+    setupNavigation();
+    setupControls();
+    setupSliders();
+    setupPresets();
+    setupGallery();
+    setupGame();
+
+    // Generate initial maze
+    generateMaze();
+
+    // Load gallery
+    loadGallery();
+}
+
+// ============ NAVIGATION ============
+function setupNavigation() {
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            switchTab(tab.dataset.tab);
+        });
+    });
+}
+
+function switchTab(tabId) {
+    state.currentTab = tabId;
+
+    // Update nav tabs
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.tab === tabId);
+    });
+
+    // Update panels
+    document.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.classList.toggle('active', panel.id === `${tabId}-panel`);
+    });
+
+    // Special actions per tab
+    if (tabId === 'gallery') {
+        loadGallery();
+    } else if (tabId === 'play') {
+        initGame();
+    }
+}
+
+// ============ CONTROLS ============
+function setupControls() {
+    document.getElementById('generateBtn')?.addEventListener('click', generateMaze);
+    document.getElementById('saveBtn')?.addEventListener('click', saveMaze);
+}
+
+// ============ SLIDERS ============
+function setupSliders() {
+    const sliders = ['playability', 'deadEnd', 'cycle'];
+
+    sliders.forEach(name => {
+        const slider = document.getElementById(`${name}Slider`);
+        const value = document.getElementById(`${name}Value`);
+
+        if (slider && value) {
+            slider.addEventListener('input', () => {
+                value.textContent = parseFloat(slider.value).toFixed(1);
+                setPreset('custom');
+            });
+        }
+    });
+}
+
+// ============ PRESETS ============
+function setupPresets() {
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            setPreset(btn.dataset.preset);
+        });
+    });
+}
+
+function setPreset(preset) {
+    state.currentPreset = preset;
+
+    // Update buttons
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.preset === preset);
+    });
+
+    // Apply preset values
+    if (preset !== 'custom' && CONFIG.PRESETS[preset]) {
+        const values = CONFIG.PRESETS[preset];
+
+        setSliderValue('playability', values.playability);
+        setSliderValue('deadEnd', values.deadEnd);
+        setSliderValue('cycle', values.cycle);
+    }
+}
+
+function setSliderValue(name, value) {
+    const slider = document.getElementById(`${name}Slider`);
+    const display = document.getElementById(`${name}Value`);
+
+    if (slider && display) {
+        slider.value = value;
+        display.textContent = value.toFixed(1);
+    }
+}
+
+// ============ MAZE GENERATION ============
+async function generateMaze() {
+    const width = parseInt(document.getElementById('mazeWidth')?.value) || 15;
+    const height = parseInt(document.getElementById('mazeHeight')?.value) || 15;
+    const playability = parseFloat(document.getElementById('playabilitySlider')?.value) || 0.5;
+    const deadEnd = parseFloat(document.getElementById('deadEndSlider')?.value) || 0.0;
+    const cycle = parseFloat(document.getElementById('cycleSlider')?.value) || 0.5;
+
+    // Validation
+    if (width < 5 || height < 5 || width > 50 || height > 50) {
+        showNotification('Invalid dimensions (5-50)', 'error');
+        return;
+    }
+
+    showLoading(true);
+
+    try {
+        const response = await axios.post('/api/generate-maze', {
+            width,
+            height,
+            playability,
+            dead_end_ratio: deadEnd,
+            cycle_intensity: cycle
+        });
+
+        if (response.data.success) {
+            state.currentMaze = response.data.maze;
+            resizeCanvas(canvas, width, height);
+            drawMaze(ctx, state.currentMaze);
+            updateMazeInfo(state.currentMaze);
+        } else {
+            showNotification(response.data.error || 'Generation failed', 'error');
+        }
+    } catch (error) {
+        showNotification('Error: ' + error.message, 'error');
+        console.error('Generation error:', error);
+    } finally {
+        showLoading(false);
+    }
+}
+
+// ============ MAZE RENDERING ============
+function resizeCanvas(canvasEl, width, height) {
+    canvasEl.width = width * CONFIG.CELL_SIZE;
+    canvasEl.height = height * CONFIG.CELL_SIZE;
+}
+
+function drawMaze(context, mazeData, options = {}) {
+    if (!mazeData || !mazeData.cells) return;
+
+    const { showPellets = false, showPacman = false } = options;
+    const cells = mazeData.cells;
+    const width = mazeData.metadata.width;
+    const height = mazeData.metadata.height;
+    const cellSize = CONFIG.CELL_SIZE;
+
+    // Clear with black
+    context.fillStyle = CONFIG.COLORS.passage;
+    context.fillRect(0, 0, context.canvas.width, context.canvas.height);
+
+    // Identify tunnel cells
+    const tunnelCells = new Set();
+    for (let y = 0; y < height; y++) {
+        const cellLeft = cells[`0,${y}`];
+        const cellRight = cells[`${width - 1},${y}`];
+
+        if (cellLeft && cellLeft.passages.includes('W')) {
+            tunnelCells.add(`0,${y}`);
+        }
+        if (cellRight && cellRight.passages.includes('E')) {
+            tunnelCells.add(`${width - 1},${y}`);
+        }
+    }
+
+    // Draw cells
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const cellKey = `${x},${y}`;
+            const cell = cells[cellKey];
+
+            if (!cell) continue;
+
+            const isGhost = cell.is_ghost_house;
+            const isTunnel = tunnelCells.has(cellKey);
+            const px = x * cellSize;
+            const py = y * cellSize;
+
+            // Cell fill color
+            let cellColor = CONFIG.COLORS.passage;
+            if (isGhost) {
+                cellColor = 'rgba(255, 0, 0, 0.3)';
+            } else if (isTunnel) {
+                cellColor = 'rgba(255, 184, 255, 0.3)';
+            }
+
+            context.fillStyle = cellColor;
+            context.fillRect(px + 1, py + 1, cellSize - 2, cellSize - 2);
+
+            // Draw walls with classic Pac-Man style
+            drawCellWalls(context, cell, x, y, cellSize);
+
+            // Draw pellets if enabled
+            if (showPellets && !isGhost) {
+                drawPellet(context, px + cellSize / 2, py + cellSize / 2);
+            }
+        }
+    }
+}
+
+function drawCellWalls(context, cell, x, y, cellSize) {
+    const px = x * cellSize;
+    const py = y * cellSize;
+    const wallWidth = 2;
+
+    context.strokeStyle = CONFIG.COLORS.wall;
+    context.lineWidth = wallWidth;
+    context.lineCap = 'round';
+
+    // North wall
+    if (!cell.passages.includes('N')) {
+        context.beginPath();
+        context.moveTo(px, py);
+        context.lineTo(px + cellSize, py);
+        context.stroke();
+    }
+
+    // South wall
+    if (!cell.passages.includes('S')) {
+        context.beginPath();
+        context.moveTo(px, py + cellSize);
+        context.lineTo(px + cellSize, py + cellSize);
+        context.stroke();
+    }
+
+    // East wall
+    if (!cell.passages.includes('E')) {
+        context.beginPath();
+        context.moveTo(px + cellSize, py);
+        context.lineTo(px + cellSize, py + cellSize);
+        context.stroke();
+    }
+
+    // West wall
+    if (!cell.passages.includes('W')) {
+        context.beginPath();
+        context.moveTo(px, py);
+        context.lineTo(px, py + cellSize);
+        context.stroke();
+    }
+}
+
+function drawPellet(context, x, y, isPower = false) {
+    context.beginPath();
+    context.arc(x, y, isPower ? 6 : 2, 0, Math.PI * 2);
+    context.fillStyle = isPower ? CONFIG.COLORS.powerPellet : CONFIG.COLORS.pellet;
+    context.fill();
+}
+
+function updateMazeInfo(mazeData) {
+    const metadata = mazeData.metadata;
+    const cellCount = Object.keys(mazeData.cells).length;
+
+    const dimensions = document.getElementById('infoDimensions');
+    const type = document.getElementById('infoType');
+    const cells = document.getElementById('infoCells');
+    const tunnels = document.getElementById('infoTunnels');
+
+    if (dimensions) dimensions.textContent = `${metadata.width} × ${metadata.height}`;
+    if (type) type.textContent = metadata.type || 'Braid Maze';
+    if (cells) cells.textContent = cellCount;
+    if (tunnels) tunnels.textContent = metadata.has_warp_tunnels ? 'ENABLED' : 'DISABLED';
+}
+
+// ============ SAVE MAZE ============
+async function saveMaze() {
+    if (!state.currentMaze) {
+        showNotification('No maze to save', 'error');
+        return;
+    }
+
+    try {
+        const response = await axios.post('/api/mazes/save', {});
+
+        if (response.data.success) {
+            showNotification(`Saved: ${response.data.name}`, 'success');
+            loadGallery();
+        }
+    } catch (error) {
+        if (error.response?.status === 503) {
+            showNotification('Database not configured', 'error');
+        } else {
+            showNotification('Save failed', 'error');
+        }
+        console.error('Save error:', error);
+    }
+}
+
+// ============ GALLERY ============
+function setupGallery() {
+    document.getElementById('refreshGalleryBtn')?.addEventListener('click', loadGallery);
+    document.getElementById('prevPageBtn')?.addEventListener('click', prevPage);
+    document.getElementById('nextPageBtn')?.addEventListener('click', nextPage);
+}
+
+async function loadGallery() {
+    const gallery = document.getElementById('mazeGallery');
+    if (!gallery) return;
+
+    gallery.innerHTML = `
+        <div class="empty-state">
+            <div class="loading-dots">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+    `;
+
+    try {
+        const response = await axios.get('/api/mazes', {
+            params: {
+                limit: CONFIG.GALLERY_LIMIT,
+                offset: state.gallery.offset,
+                sort: 'newest'
+            }
+        });
+
+        const data = response.data;
+        state.gallery.total = data.total;
+
+        if (data.mazes.length === 0) {
+            gallery.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">👻</div>
+                    <div class="empty-state-text">No saved mazes</div>
+                    <div class="empty-state-hint">Generate and save a maze to see it here</div>
+                </div>
+            `;
+        } else {
+            gallery.innerHTML = data.mazes.map(maze => `
+                <div class="maze-card" onclick="loadMazeFromGallery('${maze._id}')">
+                    <div class="maze-card-preview">
+                        <canvas id="preview-${maze._id}" width="100" height="100"></canvas>
+                    </div>
+                    <div class="maze-card-name">${escapeHtml(maze.name)}</div>
+                    <div class="maze-card-info">${maze.metadata.width} × ${maze.metadata.height}</div>
+                    <div class="maze-card-date">${formatDate(maze.created_at)}</div>
+                    <div class="maze-card-actions">
+                        <button class="btn btn-secondary" onclick="event.stopPropagation(); loadMazeFromGallery('${maze._id}')">
+                            LOAD
+                        </button>
+                        <button class="btn btn-danger" onclick="event.stopPropagation(); deleteMaze('${maze._id}')">
+                            DELETE
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            // Draw previews (simplified)
+            data.mazes.forEach(maze => {
+                drawMiniPreview(maze._id, maze);
+            });
+        }
+
+        updatePagination();
+    } catch (error) {
+        if (error.response?.status === 503) {
+            gallery.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🔌</div>
+                    <div class="empty-state-text">Database not configured</div>
+                </div>
+            `;
+        } else {
+            gallery.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">❌</div>
+                    <div class="empty-state-text">Failed to load gallery</div>
+                </div>
+            `;
+        }
+        console.error('Gallery error:', error);
+    }
+}
+
+function drawMiniPreview(mazeId, mazeData) {
+    const previewCanvas = document.getElementById(`preview-${mazeId}`);
+    if (!previewCanvas || !mazeData.cells) return;
+
+    const previewCtx = previewCanvas.getContext('2d');
+    const width = mazeData.metadata.width;
+    const height = mazeData.metadata.height;
+    const cellSize = Math.min(100 / width, 100 / height);
+
+    previewCanvas.width = width * cellSize;
+    previewCanvas.height = height * cellSize;
+
+    // Simplified preview
+    previewCtx.fillStyle = '#000';
+    previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+
+    for (const [key, cell] of Object.entries(mazeData.cells)) {
+        const [x, y] = key.split(',').map(Number);
+
+        previewCtx.strokeStyle = CONFIG.COLORS.wall;
+        previewCtx.lineWidth = 1;
+
+        const px = x * cellSize;
+        const py = y * cellSize;
+
+        if (!cell.passages.includes('N')) {
+            previewCtx.beginPath();
+            previewCtx.moveTo(px, py);
+            previewCtx.lineTo(px + cellSize, py);
+            previewCtx.stroke();
+        }
+        if (!cell.passages.includes('S')) {
+            previewCtx.beginPath();
+            previewCtx.moveTo(px, py + cellSize);
+            previewCtx.lineTo(px + cellSize, py + cellSize);
+            previewCtx.stroke();
+        }
+        if (!cell.passages.includes('E')) {
+            previewCtx.beginPath();
+            previewCtx.moveTo(px + cellSize, py);
+            previewCtx.lineTo(px + cellSize, py + cellSize);
+            previewCtx.stroke();
+        }
+        if (!cell.passages.includes('W')) {
+            previewCtx.beginPath();
+            previewCtx.moveTo(px, py);
+            previewCtx.lineTo(px, py + cellSize);
+            previewCtx.stroke();
+        }
+    }
+}
+
+async function loadMazeFromGallery(mazeId) {
+    showLoading(true);
+
+    try {
+        const response = await axios.post(`/api/mazes/${mazeId}/load`);
+
+        if (response.data.success) {
+            state.currentMaze = response.data.maze;
+            const width = state.currentMaze.metadata.width;
+            const height = state.currentMaze.metadata.height;
+
+            // Update inputs
+            const widthInput = document.getElementById('mazeWidth');
+            const heightInput = document.getElementById('mazeHeight');
+            if (widthInput) widthInput.value = width;
+            if (heightInput) heightInput.value = height;
+
+            // Switch to generate tab and draw
+            switchTab('generate');
+            resizeCanvas(canvas, width, height);
+            drawMaze(ctx, state.currentMaze);
+            updateMazeInfo(state.currentMaze);
+
+            showNotification(`Loaded: ${response.data.loaded_from}`, 'success');
+        }
+    } catch (error) {
+        showNotification('Failed to load maze', 'error');
+        console.error('Load error:', error);
+    } finally {
+        showLoading(false);
+    }
+}
+
+async function deleteMaze(mazeId) {
+    if (!confirm('Delete this maze?')) return;
+
+    try {
+        await axios.delete(`/api/mazes/${mazeId}`);
+        showNotification('Maze deleted', 'success');
+        loadGallery();
+    } catch (error) {
+        showNotification('Delete failed', 'error');
+        console.error('Delete error:', error);
+    }
+}
+
+function updatePagination() {
+    const prevBtn = document.getElementById('prevPageBtn');
+    const nextBtn = document.getElementById('nextPageBtn');
+    const pageInfo = document.getElementById('pageInfo');
+
+    const currentPage = Math.floor(state.gallery.offset / CONFIG.GALLERY_LIMIT) + 1;
+    const totalPages = Math.ceil(state.gallery.total / CONFIG.GALLERY_LIMIT) || 1;
+
+    if (prevBtn) prevBtn.disabled = state.gallery.offset === 0;
+    if (nextBtn) nextBtn.disabled = state.gallery.offset + CONFIG.GALLERY_LIMIT >= state.gallery.total;
+    if (pageInfo) pageInfo.textContent = `PAGE ${currentPage} / ${totalPages}`;
+}
+
+function prevPage() {
+    state.gallery.offset = Math.max(0, state.gallery.offset - CONFIG.GALLERY_LIMIT);
+    loadGallery();
+}
+
+function nextPage() {
+    if (state.gallery.offset + CONFIG.GALLERY_LIMIT < state.gallery.total) {
+        state.gallery.offset += CONFIG.GALLERY_LIMIT;
+        loadGallery();
+    }
+}
+
+// ============ GAME MODE ============
+function setupGame() {
+    // Keyboard controls
+    document.addEventListener('keydown', handleGameInput);
+}
+
+function initGame() {
+    if (!state.currentMaze) {
+        showNotification('Generate a maze first!', 'error');
+        return;
+    }
+
+    const width = state.currentMaze.metadata.width;
+    const height = state.currentMaze.metadata.height;
+
+    if (gameCanvas) {
+        resizeCanvas(gameCanvas, width, height);
+        drawMaze(gameCtx, state.currentMaze, { showPellets: true });
+    }
+
+    // Reset game state
+    state.game.score = 0;
+    state.game.lives = 3;
+    state.game.isPlaying = false;
+
+    updateGameStats();
+}
+
+function handleGameInput(e) {
+    if (state.currentTab !== 'play') return;
+
+    const key = e.key;
+
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(key)) {
+        e.preventDefault();
+
+        if (!state.game.isPlaying) {
+            startGame();
+        }
+
+        // Handle movement (placeholder for actual game logic)
+        console.log('Move:', key);
+    }
+
+    if (key === ' ' || key === 'Enter') {
+        e.preventDefault();
+        if (!state.game.isPlaying) {
+            startGame();
+        }
+    }
+}
+
+function startGame() {
+    state.game.isPlaying = true;
+    const overlay = document.getElementById('gameOverlay');
+    if (overlay) overlay.classList.add('hidden');
+
+    showNotification('Game started! Use arrow keys to move', 'success');
+}
+
+function updateGameStats() {
+    const scoreEl = document.getElementById('gameScore');
+    const livesEl = document.getElementById('gameLives');
+    const levelEl = document.getElementById('gameLevel');
+
+    if (scoreEl) scoreEl.textContent = state.game.score.toString().padStart(6, '0');
+    if (livesEl) livesEl.textContent = '●'.repeat(state.game.lives);
+    if (levelEl) levelEl.textContent = state.game.level;
+}
+
+// ============ UTILITIES ============
+function showLoading(show) {
+    const loading = document.getElementById('loadingIndicator');
+    if (loading) {
+        loading.classList.toggle('show', show);
+    }
+}
+
+function showNotification(message, type = 'success') {
+    const notification = document.getElementById('notification');
+    if (!notification) return;
+
+    notification.textContent = message;
+    notification.className = `notification ${type}`;
+
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+        notification.classList.add('hidden');
+    }, 3000);
+}
+
+function formatDate(isoString) {
+    const date = new Date(isoString);
+    return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// ============ EXPORT FOR GLOBAL ACCESS ============
+window.loadMazeFromGallery = loadMazeFromGallery;
+window.deleteMaze = deleteMaze;
+
+// ============ START ============
+document.addEventListener('DOMContentLoaded', init);

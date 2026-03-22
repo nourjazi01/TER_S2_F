@@ -17,7 +17,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'Src'))
 from maze_generator import MazeGenerator
 from database import save_maze, list_mazes, get_maze as db_get_maze, delete_maze
 
-app = Flask(__name__)
+# Configure Flask with static folder in Src directory
+app = Flask(__name__, static_folder='Src/static', static_url_path='/static')
 
 # Variable globale pour stocker les données du labyrinthe actuel
 current_maze = None
