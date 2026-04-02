@@ -344,7 +344,20 @@ class MazeGenerator:
         top_y = min(y for x, y in self.ghost_house_zone if x == center_x)
         
         if top_y > 0:
+            # Open the exit passage (North from ghost house, South to exit cell)
             self._remove_wall(center_x, top_y, center_x, top_y - 1, 'N')
+            
+            # IMPORTANT: Ensure the exit cell is connected to at least one horizontal neighbor
+            exit_x = center_x
+            exit_y = top_y - 1
+            
+            # Try to connect exit cell to the left
+            if exit_x > 0 and (exit_x - 1, exit_y) not in self.ghost_house_zone:
+                self._remove_wall(exit_x, exit_y, exit_x - 1, exit_y, 'W')
+            
+            # Also try to connect to the right for better navigation
+            if exit_x < self.width - 1 and (exit_x + 1, exit_y) not in self.ghost_house_zone:
+                self._remove_wall(exit_x, exit_y, exit_x + 1, exit_y, 'E')
     
     def _create_horizontal_warp_tunnels(self):
         """
