@@ -462,7 +462,3 @@ Voir documentation complète: [`DEPLOYMENT.md`](DEPLOYMENT.md)
 ## 📜 License
 
 Ce projet est un travail académique réalisé dans le cadre du TER (Travail d'Étude et de Recherche).
-
----
-
-**Note:** Ce projet démontre l'implémentation pratique d'algorithmes de pathfinding dans un contexte de jeu vidéo, avec une comparaison scientifique des performances de BFS, A* et Greedy.
