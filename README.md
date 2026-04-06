@@ -459,16 +459,6 @@ Voir documentation complète: [`DEPLOYMENT.md`](DEPLOYMENT.md)
 - Greedy Best-First Search
 - Hybrid Prim-DFS (maze generation)
 
-## 📞 Contact & Support
-
-**Auteurs:**
-- Nour Jazi - [GitHub/Email]
-- Nour Montasser - [GitHub/Email]
-
-**Repository:** [URL du repository GitHub]
-
-**Bugs & Issues:** Utiliser le système d'issues GitHub
-
 ## 📜 License
 
 Ce projet est un travail académique réalisé dans le cadre du TER (Travail d'Étude et de Recherche).
