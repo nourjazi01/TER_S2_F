@@ -240,6 +240,47 @@
                     <button class="btn btn-secondary" onclick="downloadRecording()">DOWNLOAD</button>
                 </div>
 
+                <!-- Algorithm Selector -->
+                <div class="algorithm-selector" style="margin-top: 25px; padding: 15px; background: rgba(33, 33, 222, 0.2); border: 2px solid var(--primary-color); border-radius: 8px;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 20px; flex-wrap: wrap;">
+                        <div style="color: var(--primary-color); font-family: 'Press Start 2P', monospace; font-size: 10px;">
+                            GHOST AI ALGORITHM:
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button id="algoGreedy" class="algo-btn" onclick="setAlgorithm('GREEDY')">GREEDY</button>
+                            <button id="algoBFS" class="algo-btn algo-active" onclick="setAlgorithm('BFS')">BFS</button>
+                            <button id="algoAStar" class="algo-btn" onclick="setAlgorithm('ASTAR')">A*</button>
+                        </div>
+                    </div>
+                    <div id="algoDescription" style="margin-top: 12px; font-size: 9px; color: var(--text-muted); text-align: center; line-height: 1.6;">
+                        <strong style="color: #00ff00;">BFS (Breadth-First Search):</strong> Explores all paths level by level. Guarantees shortest path but explores more nodes.
+                    </div>
+                    <div id="algoStats" style="margin-top: 10px; font-size: 8px; color: var(--accent-color); text-align: center; font-family: monospace;">
+                        Stats will appear after 10 seconds of gameplay...
+                    </div>
+                </div>
+
+                <style>
+                    .algo-btn {
+                        padding: 8px 16px;
+                        font-family: 'Press Start 2P', monospace;
+                        font-size: 9px;
+                        border: 2px solid var(--primary-color);
+                        background: transparent;
+                        color: var(--primary-color);
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .algo-btn:hover {
+                        background: rgba(33, 33, 222, 0.3);
+                    }
+                    .algo-btn.algo-active {
+                        background: var(--primary-color);
+                        color: #000;
+                        box-shadow: 0 0 10px var(--primary-color);
+                    }
+                </style>
+
                 <div class="game-controls-hint">
                     <p>Controls:</p>
                     <div class="key-hint">

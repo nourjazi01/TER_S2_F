@@ -3,6 +3,80 @@
  * Complete game implementation with Pac-Man, Ghosts, Pellets, and AI
  */
 
+// ============ PATHFINDING ALGORITHM SELECTION ============
+// Options: 'GREEDY', 'BFS', 'ASTAR'
+// Can be changed at runtime via window.PATHFINDING_ALGORITHM
+var PATHFINDING_ALGORITHM = 'BFS';
+window.PATHFINDING_ALGORITHM = PATHFINDING_ALGORITHM;
+
+// ============ ALGORITHM STATISTICS TRACKER ============
+const AlgorithmStats = {
+    // Track performance metrics for comparison
+    bfs: {
+        totalCalls: 0,
+        totalNodesExplored: 0,
+        totalPathLength: 0,
+        totalTimeMs: 0,
+        pathsFound: 0,
+        pathsNotFound: 0
+    },
+    astar: {
+        totalCalls: 0,
+        totalNodesExplored: 0,
+        totalPathLength: 0,
+        totalTimeMs: 0,
+        pathsFound: 0,
+        pathsNotFound: 0
+    },
+    greedy: {
+        totalCalls: 0,
+        totalNodesExplored: 0,  // Always 4 (checks 4 directions)
+        totalPathLength: 0,     // Always 1 (one step at a time)
+        totalTimeMs: 0,
+        pathsFound: 0,
+        pathsNotFound: 0
+    },
+
+    // Reset all stats
+    reset() {
+        for (const algo of ['bfs', 'astar', 'greedy']) {
+            this[algo].totalCalls = 0;
+            this[algo].totalNodesExplored = 0;
+            this[algo].totalPathLength = 0;
+            this[algo].totalTimeMs = 0;
+            this[algo].pathsFound = 0;
+            this[algo].pathsNotFound = 0;
+        }
+    },
+
+    // Get comparison report
+    getReport() {
+        const report = {};
+        for (const algo of ['bfs', 'astar', 'greedy']) {
+            const stats = this[algo];
+            report[algo] = {
+                calls: stats.totalCalls,
+                avgNodesExplored: stats.totalCalls > 0 ? (stats.totalNodesExplored / stats.totalCalls).toFixed(2) : 0,
+                avgPathLength: stats.pathsFound > 0 ? (stats.totalPathLength / stats.pathsFound).toFixed(2) : 0,
+                avgTimeMs: stats.totalCalls > 0 ? (stats.totalTimeMs / stats.totalCalls).toFixed(4) : 0,
+                successRate: stats.totalCalls > 0 ? ((stats.pathsFound / stats.totalCalls) * 100).toFixed(1) + '%' : '0%'
+            };
+        }
+        return report;
+    },
+
+    // Print comparison to console
+    printComparison() {
+        console.log('\n========== PATHFINDING ALGORITHM COMPARISON ==========');
+        const report = this.getReport();
+        console.table(report);
+        console.log('=======================================================\n');
+    }
+};
+
+// Make stats globally accessible for debugging
+window.AlgorithmStats = AlgorithmStats;
+
 // ============ GAME CONSTANTS ============
 const GAME_CONFIG = {
     CELL_SIZE: 20,
@@ -71,15 +145,44 @@ const GhostMode = {
     LEAVING_HOUSE: 'LEAVING_HOUSE'  // New mode for exiting the ghost house
 };
 
-// ============ BFS PATHFINDER CLASS ============
-// Implements Breadth-First Search for ghost pathfinding
+// ============ PATHFINDER CLASS ============
+// Implements BFS, A*, and Greedy algorithms for ghost pathfinding
 class Pathfinder {
     constructor(maze) {
         this.maze = maze;
     }
 
-    // BFS algorithm to find shortest path from start to goal
-    findPath(startX, startY, goalX, goalY) {
+    /**
+     * ═══════════════════════════════════════════════════════════════════════
+     * BFS (Breadth-First Search) Algorithm
+     * ═══════════════════════════════════════════════════════════════════════
+     * 
+     * HOW IT WORKS:
+     * - Explores ALL nodes at distance 1, then ALL nodes at distance 2, etc.
+     * - Uses a QUEUE (FIFO - First In, First Out)
+     * - Guarantees SHORTEST PATH (in terms of number of steps)
+     * 
+     * PSEUDOCODE:
+     *   1. Add start node to queue
+     *   2. While queue is not empty:
+     *      a. Remove first node from queue (FIFO)
+     *      b. If node is goal → reconstruct and return path
+     *      c. For each neighbor of node:
+     *         - If not visited, mark visited and add to queue
+     *   3. If queue empty and goal not found → no path exists
+     * 
+     * COMPLEXITY:
+     * - Time:  O(V + E) where V = vertices, E = edges
+     * - Space: O(V) for the visited set
+     * 
+     * PROS: Finds shortest path, simple to implement
+     * CONS: Explores many unnecessary nodes, no heuristic guidance
+     * ═══════════════════════════════════════════════════════════════════════
+     */
+    findPathBFS(startX, startY, goalX, goalY) {
+        const startTime = performance.now();
+        let nodesExplored = 0;
+
         // Clamp goal to maze bounds
         goalX = Math.max(0, Math.min(this.maze.width - 1, Math.round(goalX)));
         goalY = Math.max(0, Math.min(this.maze.height - 1, Math.round(goalY)));
@@ -88,9 +191,10 @@ class Pathfinder {
 
         // If start equals goal, no path needed
         if (startX === goalX && startY === goalY) {
-            return [];
+            return { path: [], nodesExplored: 0 };
         }
 
+        // QUEUE: BFS uses First-In-First-Out
         const queue = [];
         const visited = new Set();
         const parent = new Map();
@@ -107,17 +211,28 @@ class Pathfinder {
         ];
 
         while (queue.length > 0) {
+            // BFS: Remove from FRONT of queue (FIFO)
             const current = queue.shift();
             const currentKey = `${current.x},${current.y}`;
+            nodesExplored++;
 
             // Check if we reached the goal
             if (current.x === goalX && current.y === goalY) {
-                return this.reconstructPath(parent, startKey, currentKey);
+                const path = this.reconstructPath(parent, startKey, currentKey);
+                const timeMs = performance.now() - startTime;
+                
+                // Track statistics
+                AlgorithmStats.bfs.totalCalls++;
+                AlgorithmStats.bfs.totalNodesExplored += nodesExplored;
+                AlgorithmStats.bfs.totalPathLength += path.length;
+                AlgorithmStats.bfs.totalTimeMs += timeMs;
+                AlgorithmStats.bfs.pathsFound++;
+                
+                return { path, nodesExplored, timeMs };
             }
 
             // Explore neighbors
             for (const { dir, dx, dy } of directions) {
-                // Check if this direction is passable from current cell
                 if (!this.maze.isPassable(current.x, current.y, dir)) {
                     continue;
                 }
@@ -139,58 +254,79 @@ class Pathfinder {
             }
         }
 
-        // No path found - return empty array
-        return [];
+        // No path found
+        const timeMs = performance.now() - startTime;
+        AlgorithmStats.bfs.totalCalls++;
+        AlgorithmStats.bfs.totalNodesExplored += nodesExplored;
+        AlgorithmStats.bfs.totalTimeMs += timeMs;
+        AlgorithmStats.bfs.pathsNotFound++;
+        
+        return { path: [], nodesExplored, timeMs };
     }
 
-    // Reconstruct path from parent map
-    reconstructPath(parent, startKey, goalKey) {
-        const path = [];
-        let currentKey = goalKey;
-
-        while (currentKey !== startKey && parent.has(currentKey)) {
-            const { from, direction } = parent.get(currentKey);
-            path.unshift(direction);  // Add to front of path
-            currentKey = from;
-        }
-
-        return path;
-    }
-
-    // Get next direction towards goal using BFS
-    getNextDirection(startX, startY, goalX, goalY) {
-        const path = this.findPath(startX, startY, goalX, goalY);
-        if (path.length > 0) {
-            return path[0];  // Return first step of path
-        }
-        return null;
-    }
-
-    // A* algorithm with Manhattan distance heuristic (more efficient for longer paths)
+    /**
+     * ═══════════════════════════════════════════════════════════════════════
+     * A* (A-Star) Algorithm
+     * ═══════════════════════════════════════════════════════════════════════
+     * 
+     * HOW IT WORKS:
+     * - Uses a HEURISTIC to guide the search toward the goal
+     * - f(n) = g(n) + h(n)
+     *   - g(n) = actual cost from start to current node
+     *   - h(n) = estimated cost from current node to goal (heuristic)
+     * - Uses a PRIORITY QUEUE (always expand node with lowest f)
+     * 
+     * HEURISTIC: Manhattan Distance
+     *   h(x, y) = |x - goalX| + |y - goalY|
+     * 
+     * PSEUDOCODE:
+     *   1. Add start node to open set with f = h(start)
+     *   2. While open set is not empty:
+     *      a. Remove node with LOWEST f score
+     *      b. If node is goal → reconstruct and return path
+     *      c. Add node to closed set
+     *      d. For each neighbor:
+     *         - Calculate tentative g = current.g + 1
+     *         - If better than known g, update and add to open set
+     *   3. If open set empty → no path exists
+     * 
+     * COMPLEXITY:
+     * - Time:  O(E log V) with proper priority queue
+     * - Space: O(V)
+     * 
+     * PROS: Optimal + efficient (explores fewer nodes than BFS)
+     * CONS: More complex, requires admissible heuristic
+     * ═══════════════════════════════════════════════════════════════════════
+     */
     findPathAStar(startX, startY, goalX, goalY) {
+        const startTime = performance.now();
+        let nodesExplored = 0;
+
         goalX = Math.max(0, Math.min(this.maze.width - 1, Math.round(goalX)));
         goalY = Math.max(0, Math.min(this.maze.height - 1, Math.round(goalY)));
         startX = Math.round(startX);
         startY = Math.round(startY);
 
         if (startX === goalX && startY === goalY) {
-            return [];
+            return { path: [], nodesExplored: 0, timeMs: 0 };
         }
 
-        // Priority queue using array (sorted by f = g + h)
+        // Priority queue (sorted by f = g + h)
         const openSet = [];
         const closedSet = new Set();
-        const gScore = new Map();
+        const gScore = new Map();  // g(n) = actual cost from start
         const parent = new Map();
 
         const startKey = `${startX},${startY}`;
+        
+        // HEURISTIC: Manhattan distance (admissible for grid movement)
         const heuristic = (x, y) => Math.abs(x - goalX) + Math.abs(y - goalY);
 
         gScore.set(startKey, 0);
         openSet.push({
             x: startX,
             y: startY,
-            f: heuristic(startX, startY)
+            f: heuristic(startX, startY)  // f = g + h, where g = 0 at start
         });
 
         const directions = [
@@ -201,13 +337,24 @@ class Pathfinder {
         ];
 
         while (openSet.length > 0) {
-            // Get node with lowest f score
+            // A*: Always expand node with LOWEST f score
             openSet.sort((a, b) => a.f - b.f);
             const current = openSet.shift();
             const currentKey = `${current.x},${current.y}`;
+            nodesExplored++;
 
             if (current.x === goalX && current.y === goalY) {
-                return this.reconstructPath(parent, startKey, currentKey);
+                const path = this.reconstructPath(parent, startKey, currentKey);
+                const timeMs = performance.now() - startTime;
+                
+                // Track statistics
+                AlgorithmStats.astar.totalCalls++;
+                AlgorithmStats.astar.totalNodesExplored += nodesExplored;
+                AlgorithmStats.astar.totalPathLength += path.length;
+                AlgorithmStats.astar.totalTimeMs += timeMs;
+                AlgorithmStats.astar.pathsFound++;
+                
+                return { path, nodesExplored, timeMs };
             }
 
             closedSet.add(currentKey);
@@ -228,15 +375,17 @@ class Pathfinder {
 
                 if (closedSet.has(nextKey)) continue;
 
+                // g(neighbor) = g(current) + cost(current → neighbor)
+                // In our grid, all edges have cost 1
                 const tentativeG = gScore.get(currentKey) + 1;
 
                 if (!gScore.has(nextKey) || tentativeG < gScore.get(nextKey)) {
                     gScore.set(nextKey, tentativeG);
                     parent.set(nextKey, { from: currentKey, direction: dir });
 
+                    // f = g + h
                     const f = tentativeG + heuristic(nextX, nextY);
 
-                    // Add to open set if not already there
                     const existing = openSet.find(n => n.x === nextX && n.y === nextY);
                     if (existing) {
                         existing.f = f;
@@ -247,7 +396,153 @@ class Pathfinder {
             }
         }
 
-        return [];
+        // No path found
+        const timeMs = performance.now() - startTime;
+        AlgorithmStats.astar.totalCalls++;
+        AlgorithmStats.astar.totalNodesExplored += nodesExplored;
+        AlgorithmStats.astar.totalTimeMs += timeMs;
+        AlgorithmStats.astar.pathsNotFound++;
+        
+        return { path: [], nodesExplored, timeMs };
+    }
+
+    /**
+     * ═══════════════════════════════════════════════════════════════════════
+     * GREEDY Algorithm
+     * ═══════════════════════════════════════════════════════════════════════
+     * 
+     * HOW IT WORKS:
+     * - Only looks ONE step ahead
+     * - Chooses direction that minimizes distance to target
+     * - No pathfinding - just local decision making
+     * 
+     * PSEUDOCODE:
+     *   1. For each valid direction from current position:
+     *      - Calculate distance from (next position) to goal
+     *   2. Choose direction with MINIMUM distance
+     * 
+     * COMPLEXITY:
+     * - Time:  O(1) - always checks exactly 4 directions
+     * - Space: O(1) - no memory of path
+     * 
+     * PROS: Extremely fast, simple
+     * CONS: Not optimal, can get stuck in dead ends
+     * ═══════════════════════════════════════════════════════════════════════
+     */
+    findDirectionGreedy(startX, startY, goalX, goalY, currentDirection = null) {
+        const startTime = performance.now();
+        
+        startX = Math.round(startX);
+        startY = Math.round(startY);
+        goalX = Math.round(goalX);
+        goalY = Math.round(goalY);
+
+        const directions = [
+            { dir: DIRECTIONS.UP, dx: 0, dy: -1 },
+            { dir: DIRECTIONS.DOWN, dx: 0, dy: 1 },
+            { dir: DIRECTIONS.LEFT, dx: -1, dy: 0 },
+            { dir: DIRECTIONS.RIGHT, dx: 1, dy: 0 }
+        ];
+
+        const opposite = currentDirection ? OPPOSITE_DIRECTIONS[currentDirection.name] : null;
+
+        let bestDirection = null;
+        let bestDistance = Infinity;
+        let validDirections = [];
+
+        // Check all 4 directions (always 4 nodes explored)
+        for (const { dir, dx, dy } of directions) {
+            // Skip reverse direction (ghosts can't turn around)
+            if (dir.name === opposite) continue;
+            
+            if (!this.maze.isPassable(startX, startY, dir)) {
+                continue;
+            }
+
+            validDirections.push(dir);
+
+            let nextX = startX + dx;
+            let nextY = startY + dy;
+
+            // Handle tunnel wrapping
+            if (nextX < 0) nextX = this.maze.width - 1;
+            if (nextX >= this.maze.width) nextX = 0;
+
+            // Calculate Euclidean distance to goal
+            const distance = Math.sqrt(
+                Math.pow(nextX - goalX, 2) + Math.pow(nextY - goalY, 2)
+            );
+
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                bestDirection = dir;
+            }
+        }
+
+        const timeMs = performance.now() - startTime;
+        
+        // Track statistics
+        AlgorithmStats.greedy.totalCalls++;
+        AlgorithmStats.greedy.totalNodesExplored += 4;  // Always checks 4 directions
+        AlgorithmStats.greedy.totalTimeMs += timeMs;
+        
+        if (bestDirection) {
+            AlgorithmStats.greedy.totalPathLength += 1;  // Always moves 1 step
+            AlgorithmStats.greedy.pathsFound++;
+        } else {
+            AlgorithmStats.greedy.pathsNotFound++;
+        }
+
+        // If no direction found (shouldn't happen), allow reverse
+        if (!bestDirection && validDirections.length === 0) {
+            for (const { dir, dx, dy } of directions) {
+                if (this.maze.isPassable(startX, startY, dir)) {
+                    bestDirection = dir;
+                    break;
+                }
+            }
+        }
+
+        return { direction: bestDirection || validDirections[0], nodesExplored: 4, timeMs };
+    }
+
+    // Reconstruct path from parent map
+    reconstructPath(parent, startKey, goalKey) {
+        const path = [];
+        let currentKey = goalKey;
+
+        while (currentKey !== startKey && parent.has(currentKey)) {
+            const { from, direction } = parent.get(currentKey);
+            path.unshift(direction);  // Add to front of path
+            currentKey = from;
+        }
+
+        return path;
+    }
+
+    /**
+     * Get next direction using the configured algorithm
+     * This is the main method ghosts should call
+     */
+    getNextDirection(startX, startY, goalX, goalY, currentDirection = null) {
+        // Read the current algorithm (can be changed at runtime)
+        const algo = window.PATHFINDING_ALGORITHM || PATHFINDING_ALGORITHM;
+        
+        switch (algo) {
+            case 'BFS': {
+                const result = this.findPathBFS(startX, startY, goalX, goalY);
+                return result.path.length > 0 ? result.path[0] : null;
+            }
+            case 'ASTAR': {
+                const result = this.findPathAStar(startX, startY, goalX, goalY);
+                return result.path.length > 0 ? result.path[0] : null;
+            }
+            case 'GREEDY':
+            default: {
+                const result = this.findDirectionGreedy(startX, startY, goalX, goalY, currentDirection);
+                return result.direction;
+            }
+        }
     }
 }
 
@@ -821,8 +1116,41 @@ class Ghost extends Entity {
         return { x: pacman.gridX, y: pacman.gridY };
     }
 
-    // Choose direction using simple greedy algorithm
+    /**
+     * Choose direction using the configured pathfinding algorithm
+     * 
+     * The algorithm is selected by the PATHFINDING_ALGORITHM constant:
+     * - 'GREEDY': Local decision, checks 4 directions, picks closest to target
+     * - 'BFS': Breadth-First Search, finds shortest path
+     * - 'ASTAR': A* with Manhattan heuristic, optimal and efficient
+     */
     chooseDirection(maze, target) {
+        // Create pathfinder if not exists
+        if (!this.pathfinder || this.pathfinder.maze !== maze) {
+            this.pathfinder = new Pathfinder(maze);
+        }
+
+        // Use the pathfinder to get next direction
+        const nextDir = this.pathfinder.getNextDirection(
+            this.gridX, 
+            this.gridY, 
+            target.x, 
+            target.y,
+            this.direction
+        );
+
+        if (nextDir) {
+            this.direction = nextDir;
+            this.eyeDirection = this.direction;
+            return;
+        }
+
+        // Fallback: if pathfinder returns null, use simple greedy
+        this.chooseDirectionFallback(maze, target);
+    }
+
+    // Fallback direction choosing (used when pathfinding fails)
+    chooseDirectionFallback(maze, target) {
         const allValidDirections = [];
         const opposite = this.direction ? OPPOSITE_DIRECTIONS[this.direction.name] : null;
 
@@ -1753,6 +2081,12 @@ class GameEngine {
         this.gameTime += cappedDelta;
         if (this.onTimeUpdate) {
             this.onTimeUpdate(Math.floor(this.gameTime / 1000));
+        }
+
+        // Print algorithm stats every 10 seconds
+        if (Math.floor(this.gameTime / 10000) > Math.floor((this.gameTime - cappedDelta) / 10000)) {
+            console.log(`\n⏱️ Time: ${Math.floor(this.gameTime / 1000)}s | Algorithm: ${PATHFINDING_ALGORITHM}`);
+            AlgorithmStats.printComparison();
         }
 
         // Update mode timer (scatter/chase alternation)

@@ -917,6 +917,85 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+// ============ ALGORITHM SELECTION ============
+let currentAlgorithm = 'BFS';
+
+const algorithmDescriptions = {
+    'GREEDY': '<strong style="color: #ff6600;">GREEDY:</strong> Only looks 1 step ahead. Picks direction closest to target. Very fast (O(1)) but can get stuck in dead ends. Original Pac-Man behavior.',
+    'BFS': '<strong style="color: #00ff00;">BFS (Breadth-First Search):</strong> Explores all paths level by level using a queue (FIFO). Guarantees shortest path but explores more nodes. Time: O(V+E)',
+    'ASTAR': '<strong style="color: #00ffff;">A* (A-Star):</strong> Uses heuristic (Manhattan distance) to guide search. f(n) = g(n) + h(n). Optimal AND efficient - best of both worlds. Time: O(E log V)'
+};
+
+function setAlgorithm(algo) {
+    currentAlgorithm = algo;
+    
+    // Update the global variable in game-engine.js
+    if (typeof window.PATHFINDING_ALGORITHM !== 'undefined') {
+        window.PATHFINDING_ALGORITHM = algo;
+    }
+    
+    // Update button styles
+    document.querySelectorAll('.algo-btn').forEach(btn => {
+        btn.classList.remove('algo-active');
+    });
+    
+    const activeBtn = document.getElementById('algo' + algo.charAt(0) + algo.slice(1).toLowerCase().replace('star', 'Star'));
+    if (algo === 'GREEDY') document.getElementById('algoGreedy').classList.add('algo-active');
+    if (algo === 'BFS') document.getElementById('algoBFS').classList.add('algo-active');
+    if (algo === 'ASTAR') document.getElementById('algoAStar').classList.add('algo-active');
+    
+    // Update description
+    const descEl = document.getElementById('algoDescription');
+    if (descEl) {
+        descEl.innerHTML = algorithmDescriptions[algo];
+    }
+    
+    // Reset stats when switching
+    if (typeof AlgorithmStats !== 'undefined') {
+        AlgorithmStats.reset();
+    }
+    
+    // Update stats display
+    updateAlgorithmStats();
+    
+    showNotification(`Ghost AI switched to ${algo}`, 'success');
+    
+    // If game is running, ghosts will use the new algorithm on next decision
+    console.log(`🧠 Algorithm changed to: ${algo}`);
+}
+
+function updateAlgorithmStats() {
+    const statsEl = document.getElementById('algoStats');
+    if (!statsEl) return;
+    
+    if (typeof AlgorithmStats === 'undefined') {
+        statsEl.textContent = 'Stats not available';
+        return;
+    }
+    
+    const stats = AlgorithmStats[currentAlgorithm.toLowerCase()];
+    if (!stats || stats.totalCalls === 0) {
+        statsEl.innerHTML = `<span style="color: #888;">Waiting for data... Play the game to see ${currentAlgorithm} performance stats.</span>`;
+        return;
+    }
+    
+    const avgNodes = (stats.totalNodesExplored / stats.totalCalls).toFixed(1);
+    const avgPath = stats.pathsFound > 0 ? (stats.totalPathLength / stats.pathsFound).toFixed(1) : 0;
+    const avgTime = (stats.totalTimeMs / stats.totalCalls).toFixed(4);
+    const successRate = ((stats.pathsFound / stats.totalCalls) * 100).toFixed(0);
+    
+    statsEl.innerHTML = `
+        <span style="color: #ffff00;">Calls:</span> ${stats.totalCalls} | 
+        <span style="color: #00ff00;">Avg Nodes:</span> ${avgNodes} | 
+        <span style="color: #00ffff;">Avg Path:</span> ${avgPath} | 
+        <span style="color: #ff00ff;">Avg Time:</span> ${avgTime}ms | 
+        <span style="color: #ff6600;">Success:</span> ${successRate}%
+    `;
+}
+
+// Update stats display every 2 seconds
+setInterval(updateAlgorithmStats, 2000);
+
 // ============ EXPORT FOR GLOBAL ACCESS ============
 window.loadMazeFromGallery = loadMazeFromGallery;
 window.deleteMaze = deleteMaze;
@@ -926,6 +1005,7 @@ window.restartGame = restartGame;
 window.toggleRecording = toggleRecording;
 window.playLastRecording = playLastRecording;
 window.downloadRecording = downloadRecording;
+window.setAlgorithm = setAlgorithm;
 
 // ============ START ============
 document.addEventListener('DOMContentLoaded', init);
