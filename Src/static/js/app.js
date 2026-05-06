@@ -866,6 +866,250 @@ function downloadRecording() {
     showNotification('Recording downloaded', 'success');
 }
 
+// ============ TRAJECTORY WORKFLOW (Tasks 4-5-6) ============
+// Task 4: Record Pac-Man's trajectory (keyboard inputs) without ghosts.
+// Task 5: Replay that trajectory with ghosts active (using the selected AI).
+// Task 6: While replaying with ghosts, capture full frames and save them.
+
+let trajectoryRecording = null;       // Last captured no-ghosts trajectory
+let withGhostsRecording = null;       // Last captured replay-with-ghosts run
+let isRecordingTrajectory = false;
+let isSavingWithGhosts = false;
+let trajectoryMaze = null;            // Maze used when the trajectory was captured
+
+function setTrajectoryStatus(text) {
+    const el = document.getElementById('trajectoryStatus');
+    if (el) el.innerHTML = text;
+}
+
+function toggleTrajectoryRecording() {
+    if (isRecordingTrajectory) {
+        stopTrajectoryRecording();
+    } else {
+        startTrajectoryRecording();
+    }
+}
+
+function startTrajectoryRecording() {
+    if (!state.currentMaze) {
+        showNotification('Generate a maze first!', 'error');
+        return;
+    }
+
+    // Fresh game with no ghosts so the trajectory is pure Pac-Man movement.
+    if (gameEngine) gameEngine.stop();
+    gameEngine = new GameEngine(gameCanvas, state.currentMaze);
+    wireGameEngineCallbacks();
+    gameEngine.startInputRecording();
+
+    // Hide overlay and start playing immediately
+    const overlay = document.getElementById('gameOverlay');
+    if (overlay) overlay.classList.add('hidden');
+    state.game.isPlaying = true;
+    gameEngine.start();
+
+    isRecordingTrajectory = true;
+    const btn = document.getElementById('recordTrajectoryBtn');
+    if (btn) {
+        btn.textContent = '4. STOP TRAJECTORY';
+        btn.classList.add('recording');
+    }
+    setTrajectoryStatus('<span style="color:#ff5050;">RECORDING TRAJECTORY (no ghosts)...</span> Use arrow keys.');
+    showNotification('Recording trajectory (no ghosts)', 'success');
+}
+
+function stopTrajectoryRecording() {
+    if (!gameEngine || !isRecordingTrajectory) return;
+
+    const data = gameEngine.stopInputRecording();
+    isRecordingTrajectory = false;
+
+    if (data) {
+        // Snapshot the maze used so replay reproduces the same layout.
+        trajectoryMaze = JSON.parse(JSON.stringify(state.currentMaze));
+        data.metadata.maze = trajectoryMaze;
+        trajectoryRecording = data;
+        localStorage.setItem('lastTrajectory', JSON.stringify(data));
+        setTrajectoryStatus(`Captured ${data.events.length} input events over ${(data.metadata.duration / 1000).toFixed(1)}s. Click REPLAY WITH GHOSTS.`);
+        showNotification(`Trajectory saved: ${data.events.length} events`, 'success');
+    }
+
+    const btn = document.getElementById('recordTrajectoryBtn');
+    if (btn) {
+        btn.textContent = '4. RECORD (NO GHOSTS)';
+        btn.classList.remove('recording');
+    }
+
+    // Stop the engine so the canvas freezes
+    gameEngine.stop();
+    state.game.isPlaying = false;
+}
+
+function replayWithGhosts() {
+    // Try to recover trajectory from memory or localStorage
+    if (!trajectoryRecording) {
+        const stored = localStorage.getItem('lastTrajectory');
+        if (stored) {
+            try {
+                trajectoryRecording = JSON.parse(stored);
+                if (trajectoryRecording.metadata && trajectoryRecording.metadata.maze) {
+                    trajectoryMaze = trajectoryRecording.metadata.maze;
+                }
+            } catch (e) {
+                console.error('Failed to parse stored trajectory', e);
+            }
+        }
+    }
+
+    if (!trajectoryRecording) {
+        showNotification('No trajectory recorded yet. Use RECORD (NO GHOSTS) first.', 'error');
+        return;
+    }
+
+    const mazeForReplay = trajectoryMaze || state.currentMaze;
+    if (!mazeForReplay) {
+        showNotification('No maze available for replay', 'error');
+        return;
+    }
+
+    if (gameEngine) gameEngine.stop();
+    gameEngine = new GameEngine(gameCanvas, mazeForReplay);
+    wireGameEngineCallbacks();
+    gameEngine.loadInputReplay(trajectoryRecording);
+
+    if (isSavingWithGhosts) {
+        gameEngine.startRecording();
+    }
+
+    const overlay = document.getElementById('gameOverlay');
+    if (overlay) overlay.classList.add('hidden');
+    state.game.isPlaying = true;
+    gameEngine.start();
+
+    const algo = window.PATHFINDING_ALGORITHM || 'BFS';
+    setTrajectoryStatus(`<span style="color:#00ff00;">REPLAYING with ghosts using ${algo}.</span>${isSavingWithGhosts ? ' Saving full frames.' : ''}`);
+    showNotification(`Replaying with ghosts (${algo})`, 'success');
+}
+
+function toggleSaveWithGhosts() {
+    isSavingWithGhosts = !isSavingWithGhosts;
+    const btn = document.getElementById('saveWithGhostsBtn');
+
+    if (isSavingWithGhosts) {
+        // If a replay is already running, start capturing now
+        if (gameEngine && gameEngine.mode === 'INPUT_REPLAY') {
+            gameEngine.startRecording();
+            setTrajectoryStatus('<span style="color:#00ff00;">SAVING REPLAY (with ghosts)...</span>');
+        } else {
+            setTrajectoryStatus('Save-with-ghosts <strong>armed</strong>. Click REPLAY WITH GHOSTS to start capture.');
+        }
+        if (btn) {
+            btn.textContent = '6. STOP SAVE';
+            btn.classList.add('recording');
+        }
+        showNotification('Will save the next replay with ghosts', 'success');
+    } else {
+        // If a save is in progress, finalize it
+        if (gameEngine && gameEngine.isRecording) {
+            const data = gameEngine.stopRecording();
+            if (data) {
+                withGhostsRecording = data;
+                localStorage.setItem('lastWithGhostsRecording', JSON.stringify(data));
+                setTrajectoryStatus(`Saved replay-with-ghosts: ${data.frames.length} frames.`);
+                showNotification(`Replay saved: ${data.frames.length} frames`, 'success');
+            }
+        }
+        if (btn) {
+            btn.textContent = '6. SAVE WITH GHOSTS';
+            btn.classList.remove('recording');
+        }
+    }
+}
+
+function downloadTrajectory() {
+    let data = trajectoryRecording;
+    if (!data) {
+        const stored = localStorage.getItem('lastTrajectory');
+        if (stored) data = JSON.parse(stored);
+    }
+    if (!data) {
+        showNotification('No trajectory to download', 'error');
+        return;
+    }
+    downloadJsonBlob(data, `pacman-trajectory-${Date.now()}.json`);
+    showNotification('Trajectory downloaded', 'success');
+}
+
+function downloadWithGhostsRecording() {
+    let data = withGhostsRecording;
+    if (!data) {
+        const stored = localStorage.getItem('lastWithGhostsRecording');
+        if (stored) data = JSON.parse(stored);
+    }
+    if (!data) {
+        showNotification('No with-ghosts recording yet', 'error');
+        return;
+    }
+    downloadJsonBlob(data, `pacman-with-ghosts-${Date.now()}.json`);
+    showNotification('With-ghosts recording downloaded', 'success');
+}
+
+function downloadJsonBlob(obj, filename) {
+    const blob = new Blob([JSON.stringify(obj)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// Re-attach callbacks to a freshly-created GameEngine.
+// Mirrors the wiring done inline in initGame().
+function wireGameEngineCallbacks() {
+    if (!gameEngine) return;
+
+    gameEngine.onScoreChange = (score) => {
+        updateGameStats();
+        state.game.score = score;
+    };
+    gameEngine.onLivesChange = (lives) => {
+        updateGameStats();
+        state.game.lives = lives;
+    };
+    gameEngine.onTimeUpdate = (seconds) => {
+        const timerEl = document.getElementById('gameTimer');
+        if (timerEl) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            timerEl.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+    };
+    gameEngine.onGameOver = (score, level) => {
+        const overlay = document.getElementById('gameOverlay');
+        const title = overlay?.querySelector('.game-overlay-title');
+        const subtitle = overlay?.querySelector('.game-overlay-subtitle');
+        if (overlay) {
+            overlay.classList.remove('hidden');
+            if (title) title.textContent = 'GAME OVER';
+            if (subtitle) subtitle.textContent = `Score: ${score} | Level: ${level}`;
+        }
+        // Auto-finalize a save-with-ghosts capture on death
+        if (isSavingWithGhosts && gameEngine && gameEngine.isRecording) {
+            const data = gameEngine.stopRecording();
+            if (data) {
+                withGhostsRecording = data;
+                localStorage.setItem('lastWithGhostsRecording', JSON.stringify(data));
+                setTrajectoryStatus(`Saved replay-with-ghosts on game over: ${data.frames.length} frames.`);
+            }
+        }
+    };
+    gameEngine.onLevelComplete = (level, score) => {
+        showNotification(`Level ${level} Complete! Score: ${score}`, 'success');
+        setTimeout(() => gameEngine && gameEngine.nextLevel(), 2000);
+    };
+}
+
 function updateGameStats() {
     const scoreEl = document.getElementById('gameScore');
     const livesEl = document.getElementById('gameLives');
@@ -1006,6 +1250,11 @@ window.toggleRecording = toggleRecording;
 window.playLastRecording = playLastRecording;
 window.downloadRecording = downloadRecording;
 window.setAlgorithm = setAlgorithm;
+window.toggleTrajectoryRecording = toggleTrajectoryRecording;
+window.replayWithGhosts = replayWithGhosts;
+window.toggleSaveWithGhosts = toggleSaveWithGhosts;
+window.downloadTrajectory = downloadTrajectory;
+window.downloadWithGhostsRecording = downloadWithGhostsRecording;
 
 // ============ START ============
 document.addEventListener('DOMContentLoaded', init);

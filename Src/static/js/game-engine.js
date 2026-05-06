@@ -1911,6 +1911,51 @@ class GameRecording {
     }
 }
 
+// ============ INPUT RECORDING CLASS ============
+// Captures Pac-Man keyboard inputs (direction changes + stops) with timestamps.
+// Used to record a "ghost-free" trajectory and replay it later with ghosts active.
+class InputRecording {
+    constructor() {
+        this.events = [];
+        this.metadata = {};
+        this.isRecording = false;
+    }
+
+    start(metadata) {
+        this.events = [];
+        this.metadata = {
+            type: 'input_recording',
+            ...metadata,
+            startTime: Date.now(),
+            version: '1.0'
+        };
+        this.isRecording = true;
+    }
+
+    recordEvent(gameTime, type, direction = null) {
+        if (!this.isRecording) return;
+        this.events.push({
+            timestamp: gameTime,
+            type,
+            direction
+        });
+    }
+
+    stop(gameTime) {
+        this.isRecording = false;
+        this.metadata.endTime = Date.now();
+        this.metadata.duration = gameTime;
+        this.metadata.totalEvents = this.events.length;
+    }
+
+    export() {
+        return {
+            metadata: this.metadata,
+            events: this.events
+        };
+    }
+}
+
 // ============ MAIN GAME ENGINE CLASS ============
 class GameEngine {
     constructor(canvas, mazeData) {
@@ -1948,6 +1993,16 @@ class GameEngine {
         this.replay = null;
         this.replayFrameIndex = 0;
         this.isReplaying = false;
+
+        // Game mode: 'NORMAL' (default play with ghosts),
+        // 'NO_GHOSTS' (record trajectory without ghosts),
+        // 'INPUT_REPLAY' (auto-pilot Pacman from recorded inputs while ghosts run).
+        this.mode = 'NORMAL';
+
+        // Input recording (Task 4) and input replay (Task 5)
+        this.inputRecording = new InputRecording();
+        this.inputReplayData = null;
+        this.inputReplayIndex = 0;
 
         // Animation
         this.lastTime = 0;
@@ -2118,17 +2173,40 @@ class GameEngine {
     }
 
     update(deltaTime) {
+        // Apply pending replay inputs (Task 5) before Pacman moves
+        if (this.mode === 'INPUT_REPLAY' && this.inputReplayData) {
+            this.applyReplayEvents();
+        }
+
         // Update Pac-Man
         this.pacman.update(this.maze, deltaTime);
 
-        // Update ghosts
-        for (const ghost of this.ghosts) {
-            ghost.update(this.maze, this.pacman, this.blinky, deltaTime);
+        // Skip ghost simulation when recording the ghost-free trajectory
+        if (this.mode !== 'NO_GHOSTS') {
+            for (const ghost of this.ghosts) {
+                ghost.update(this.maze, this.pacman, this.blinky, deltaTime);
+            }
         }
 
         // Update pellets
         for (const pellet of this.maze.pellets) {
             pellet.update(deltaTime);
+        }
+    }
+
+    // Auto-pilot Pacman from a previously-recorded input stream
+    applyReplayEvents() {
+        const events = this.inputReplayData.events;
+        while (this.inputReplayIndex < events.length) {
+            const evt = events[this.inputReplayIndex];
+            if (evt.timestamp > this.gameTime) break;
+
+            if (evt.type === 'direction' && DIRECTIONS[evt.direction]) {
+                this.pacman.setDirection(DIRECTIONS[evt.direction]);
+            } else if (evt.type === 'stop') {
+                this.pacman.stopMovement();
+            }
+            this.inputReplayIndex++;
         }
     }
 
@@ -2180,6 +2258,9 @@ class GameEngine {
                 }
             }
         }
+
+        // Skip ghost-collision checks when recording trajectory without ghosts
+        if (this.mode === 'NO_GHOSTS') return;
 
         // Pac-Man with ghosts
         for (const ghost of this.ghosts) {
@@ -2284,9 +2365,11 @@ class GameEngine {
             pellet.draw(this.ctx, this.cellSize);
         }
 
-        // Draw ghosts
-        for (const ghost of this.ghosts) {
-            ghost.draw(this.ctx);
+        // Draw ghosts (hidden in trajectory-recording mode)
+        if (this.mode !== 'NO_GHOSTS') {
+            for (const ghost of this.ghosts) {
+                ghost.draw(this.ctx);
+            }
         }
 
         // Draw Pac-Man
@@ -2299,7 +2382,23 @@ class GameEngine {
             this.start();
         }
         if (this.state === GameState.PLAYING && this.pacman) {
+            // Ignore live input while replaying a recorded trajectory
+            if (this.mode === 'INPUT_REPLAY') return;
+
             this.pacman.setDirection(direction);
+            // Capture for later replay (Task 4)
+            if (this.inputRecording.isRecording) {
+                this.inputRecording.recordEvent(this.gameTime, 'direction', direction.name);
+            }
+        }
+    }
+
+    pacmanStop() {
+        if (!this.pacman) return;
+        if (this.mode === 'INPUT_REPLAY') return;
+        this.pacman.stopMovement();
+        if (this.inputRecording.isRecording) {
+            this.inputRecording.recordEvent(this.gameTime, 'stop');
         }
     }
 
@@ -2349,10 +2448,42 @@ class GameEngine {
         // Stop Pacman when arrow key is released
         if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
              'w', 'a', 's', 'd', 'W', 'A', 'S', 'D'].includes(key)) {
-            if (this.pacman) {
-                this.pacman.stopMovement();
-            }
+            this.pacmanStop();
         }
+    }
+
+    // ===== Mode + input recording / replay =====
+
+    setMode(mode) {
+        this.mode = mode;
+    }
+
+    startInputRecording() {
+        this.mode = 'NO_GHOSTS';
+        this.inputRecording.start({
+            mazeWidth: this.maze.width,
+            mazeHeight: this.maze.height,
+            algorithm: window.PATHFINDING_ALGORITHM || 'BFS'
+        });
+    }
+
+    stopInputRecording() {
+        if (!this.inputRecording.isRecording) return null;
+        this.inputRecording.stop(this.gameTime);
+        return this.inputRecording.export();
+    }
+
+    // Load a recorded trajectory and switch to replay-with-ghosts mode (Task 5)
+    loadInputReplay(data) {
+        this.inputReplayData = data;
+        this.inputReplayIndex = 0;
+        this.mode = 'INPUT_REPLAY';
+    }
+
+    clearInputReplay() {
+        this.inputReplayData = null;
+        this.inputReplayIndex = 0;
+        this.mode = 'NORMAL';
     }
 
     // Recording controls

@@ -232,12 +232,41 @@
                     </div>
                 </div>
 
-                <div class="game-buttons" style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
+                <div class="game-buttons" style="display: flex; gap: 15px; justify-content: center; margin-top: 20px; flex-wrap: wrap;">
                     <button class="btn btn-primary" onclick="restartGame()">RESTART</button>
                     <button class="btn btn-secondary" onclick="pauseGame()">PAUSE</button>
                     <button id="recordBtn" class="btn btn-danger" onclick="toggleRecording()">RECORD</button>
                     <button class="btn btn-secondary" onclick="playLastRecording()">REPLAY</button>
                     <button class="btn btn-secondary" onclick="downloadRecording()">DOWNLOAD</button>
+                </div>
+
+                <!-- Trajectory Workflow (Tasks 4-5-6) -->
+                <div class="trajectory-workflow" style="margin-top: 20px; padding: 15px; background: rgba(255, 184, 82, 0.1); border: 2px solid var(--accent-color, #FFB852); border-radius: 8px;">
+                    <div style="font-family: 'Press Start 2P', monospace; font-size: 10px; color: var(--accent-color, #FFB852); text-align: center; margin-bottom: 12px;">
+                        TRAJECTORY WORKFLOW
+                    </div>
+                    <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                        <button id="recordTrajectoryBtn" class="btn btn-danger" onclick="toggleTrajectoryRecording()">
+                            4. RECORD (NO GHOSTS)
+                        </button>
+                        <button class="btn btn-primary" onclick="replayWithGhosts()">
+                            5. REPLAY WITH GHOSTS
+                        </button>
+                        <button id="saveWithGhostsBtn" class="btn btn-success" onclick="toggleSaveWithGhosts()">
+                            6. SAVE WITH GHOSTS
+                        </button>
+                        <button class="btn btn-secondary" onclick="downloadTrajectory()">
+                            DL TRAJECTORY
+                        </button>
+                        <button class="btn btn-secondary" onclick="downloadWithGhostsRecording()">
+                            DL WITH-GHOSTS
+                        </button>
+                    </div>
+                    <div id="trajectoryStatus" style="margin-top: 10px; font-size: 9px; color: var(--text-muted); text-align: center; line-height: 1.5;">
+                        1) Record Pac-Man's path without ghosts &nbsp;&middot;&nbsp;
+                        2) Replay it with ghosts (uses selected AI) &nbsp;&middot;&nbsp;
+                        3) Save the replay
+                    </div>
                 </div>
 
                 <!-- Algorithm Selector -->
