@@ -15,7 +15,7 @@ load_dotenv()
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'Src'))
 
 from maze_generator import MazeGenerator
-from database import save_maze, list_mazes, get_maze as db_get_maze, delete_maze
+from database import save_maze, list_mazes, get_maze as db_get_maze, delete_maze, rate_maze
 
 # Configure Flask with static folder in Src directory
 app = Flask(__name__, static_folder='Src/static', static_url_path='/static')
@@ -187,6 +187,37 @@ def delete_saved_maze(maze_id):
             return jsonify({'error': 'Labyrinthe non trouvé'}), 404
     except ValueError as e:
         return jsonify({'error': str(e)}), 503
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/mazes/<maze_id>/rate', methods=['POST'])
+def rate_saved_maze(maze_id):
+    """
+    Submit a 1..5 star rating for a maze.
+
+    Body:
+        { "rating": <int 1..5> }
+    """
+    data = request.get_json(silent=True) or {}
+    rating = data.get('rating')
+
+    # Allow numeric strings too (e.g. from forms), reject anything else early.
+    try:
+        rating = int(rating)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Rating must be an integer between 1 and 5'}), 400
+
+    try:
+        result = rate_maze(maze_id, rating)
+        if result is None:
+            return jsonify({'error': 'Labyrinthe non trouvé'}), 404
+        return jsonify({'success': True, **result})
+    except ValueError as e:
+        # Either bad rating range, or MONGODB_URI not set
+        msg = str(e)
+        status = 400 if 'between 1 and 5' in msg else 503
+        return jsonify({'error': msg}), status
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

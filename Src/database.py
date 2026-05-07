@@ -4,7 +4,7 @@ MongoDB database connection and operations for maze storage.
 
 import os
 from datetime import datetime
-from pymongo import MongoClient
+from pymongo import MongoClient, ReturnDocument
 from pymongo.errors import ConnectionFailure
 from bson.objectid import ObjectId
 
@@ -94,7 +94,11 @@ def save_maze(maze_data, custom_name=None):
         "name": name,
         "created_at": created_at,
         "metadata": maze_data.get('metadata', {}),
-        "cells": maze_data.get('cells', {})
+        "cells": maze_data.get('cells', {}),
+        # Rating aggregates (initialised at zero)
+        "rating_sum": 0,
+        "rating_count": 0,
+        "rating_avg": 0.0
     }
 
     result = collection.insert_one(document)
@@ -103,6 +107,58 @@ def save_maze(maze_data, custom_name=None):
         "maze_id": str(result.inserted_id),
         "name": name,
         "created_at": created_at.isoformat() + "Z"
+    }
+
+
+def rate_maze(maze_id, rating):
+    """
+    Add a 1-5 star rating to a maze and update its average.
+
+    Args:
+        maze_id: MongoDB ObjectId as string
+        rating: integer 1..5
+
+    Returns:
+        Dict with updated rating_avg and rating_count, or None if not found.
+
+    Raises:
+        ValueError: if the rating is not in 1..5
+    """
+    if not isinstance(rating, int) or rating < 1 or rating > 5:
+        raise ValueError("Rating must be an integer between 1 and 5")
+
+    collection = get_mazes_collection()
+
+    try:
+        oid = ObjectId(maze_id)
+    except Exception:
+        return None
+
+    # Atomic increment of sum and count, then recompute average
+    result = collection.find_one_and_update(
+        {"_id": oid},
+        {"$inc": {"rating_sum": rating, "rating_count": 1}},
+        return_document=ReturnDocument.AFTER
+    )
+
+    if result is None:
+        return None
+
+    rating_sum = result.get("rating_sum", 0)
+    rating_count = result.get("rating_count", 0)
+    rating_avg = (rating_sum / rating_count) if rating_count > 0 else 0.0
+
+    # Persist the average so it can be sorted/displayed without recomputation
+    collection.update_one(
+        {"_id": oid},
+        {"$set": {"rating_avg": rating_avg}}
+    )
+
+    return {
+        "maze_id": maze_id,
+        "rating_avg": round(rating_avg, 2),
+        "rating_count": rating_count,
+        "last_rating": rating
     }
 
 
@@ -121,12 +177,19 @@ def list_mazes(limit=20, offset=0, sort="newest"):
     """
     collection = get_mazes_collection()
 
-    sort_order = -1 if sort == "newest" else 1
+    # Resolve sort field and direction
+    if sort == "oldest":
+        sort_spec = [("created_at", 1)]
+    elif sort == "best":
+        # Sort by avg rating desc, then by count desc as tiebreaker
+        sort_spec = [("rating_avg", -1), ("rating_count", -1), ("created_at", -1)]
+    else:  # "newest" (default)
+        sort_spec = [("created_at", -1)]
 
     cursor = collection.find(
         {},
         {"cells": 0}  # Exclude cells for listing
-    ).sort("created_at", sort_order).skip(offset).limit(limit)
+    ).sort(sort_spec).skip(offset).limit(limit)
 
     mazes = []
     for doc in cursor:
@@ -134,6 +197,9 @@ def list_mazes(limit=20, offset=0, sort="newest"):
         # Convert datetime to ISO string if present
         if 'created_at' in doc and isinstance(doc['created_at'], datetime):
             doc['created_at'] = doc['created_at'].isoformat() + "Z"
+        # Backfill rating fields for legacy docs that pre-date the rating feature
+        doc.setdefault('rating_avg', 0.0)
+        doc.setdefault('rating_count', 0)
         mazes.append(doc)
 
     total = collection.count_documents({})
@@ -171,6 +237,9 @@ def get_maze(maze_id):
         # Convert datetime to ISO string if present
         if 'created_at' in doc and isinstance(doc['created_at'], datetime):
             doc['created_at'] = doc['created_at'].isoformat() + "Z"
+        # Backfill rating fields for legacy docs that pre-date the rating feature
+        doc.setdefault('rating_avg', 0.0)
+        doc.setdefault('rating_count', 0)
 
     return doc
 

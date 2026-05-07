@@ -10,36 +10,23 @@ var PATHFINDING_ALGORITHM = 'BFS';
 window.PATHFINDING_ALGORITHM = PATHFINDING_ALGORITHM;
 
 // ============ ALGORITHM STATISTICS TRACKER ============
+// Tracks per-algorithm performance metrics. Adversarial algorithms
+// (minimax / alphabeta / expectimax) report `totalNodesExplored` as the
+// number of game-tree nodes evaluated — directly comparable to BFS/A*
+// search-node counts.
 const AlgorithmStats = {
-    // Track performance metrics for comparison
-    bfs: {
-        totalCalls: 0,
-        totalNodesExplored: 0,
-        totalPathLength: 0,
-        totalTimeMs: 0,
-        pathsFound: 0,
-        pathsNotFound: 0
-    },
-    astar: {
-        totalCalls: 0,
-        totalNodesExplored: 0,
-        totalPathLength: 0,
-        totalTimeMs: 0,
-        pathsFound: 0,
-        pathsNotFound: 0
-    },
-    greedy: {
-        totalCalls: 0,
-        totalNodesExplored: 0,  // Always 4 (checks 4 directions)
-        totalPathLength: 0,     // Always 1 (one step at a time)
-        totalTimeMs: 0,
-        pathsFound: 0,
-        pathsNotFound: 0
-    },
+    bfs:        { totalCalls: 0, totalNodesExplored: 0, totalPathLength: 0, totalTimeMs: 0, pathsFound: 0, pathsNotFound: 0 },
+    astar:      { totalCalls: 0, totalNodesExplored: 0, totalPathLength: 0, totalTimeMs: 0, pathsFound: 0, pathsNotFound: 0 },
+    greedy:     { totalCalls: 0, totalNodesExplored: 0, totalPathLength: 0, totalTimeMs: 0, pathsFound: 0, pathsNotFound: 0 },
+    minimax:    { totalCalls: 0, totalNodesExplored: 0, totalPathLength: 0, totalTimeMs: 0, pathsFound: 0, pathsNotFound: 0 },
+    alphabeta:  { totalCalls: 0, totalNodesExplored: 0, totalPathLength: 0, totalTimeMs: 0, pathsFound: 0, pathsNotFound: 0 },
+    expectimax: { totalCalls: 0, totalNodesExplored: 0, totalPathLength: 0, totalTimeMs: 0, pathsFound: 0, pathsNotFound: 0 },
+
+    _algos: ['bfs', 'astar', 'greedy', 'minimax', 'alphabeta', 'expectimax'],
 
     // Reset all stats
     reset() {
-        for (const algo of ['bfs', 'astar', 'greedy']) {
+        for (const algo of this._algos) {
             this[algo].totalCalls = 0;
             this[algo].totalNodesExplored = 0;
             this[algo].totalPathLength = 0;
@@ -52,7 +39,7 @@ const AlgorithmStats = {
     // Get comparison report
     getReport() {
         const report = {};
-        for (const algo of ['bfs', 'astar', 'greedy']) {
+        for (const algo of this._algos) {
             const stats = this[algo];
             report[algo] = {
                 calls: stats.totalCalls,
@@ -91,7 +78,11 @@ const GAME_CONFIG = {
     // Scoring
     PELLET_SCORE: 10,
     POWER_PELLET_SCORE: 50,
+    BONUS_PELLET_SCORE: 100,
     GHOST_SCORES: [200, 400, 800, 1600],
+
+    // How many bonus fruits to scatter around the maze (capped to avoid clutter)
+    BONUS_PELLET_COUNT: 3,
 
     // Colors
     COLORS: {
@@ -99,6 +90,8 @@ const GAME_CONFIG = {
         passage: '#000000',
         pellet: '#FFCC99',
         powerPellet: '#FFFF00',
+        bonusPellet: '#FF3333',
+        bonusStem: '#00AA00',
         pacman: '#FFFF00',
         ghostRed: '#FF0000',
         ghostPink: '#FFB8FF',
@@ -521,13 +514,512 @@ class Pathfinder {
     }
 
     /**
-     * Get next direction using the configured algorithm
-     * This is the main method ghosts should call
+     * ═══════════════════════════════════════════════════════════════════════
+     * ADVERSARIAL SEARCH FOR PAC-MAN SELF-PLAY
+     * Minimax / Alpha-Beta / Expectimax
+     * ═══════════════════════════════════════════════════════════════════════
+     *
+     * Pac-Man is the MAX player. The closest active ghost is the adversary
+     * we recurse over (other active ghosts contribute to the leaf evaluation
+     * but are not simulated, to keep branching small).
+     *
+     * Algorithm semantics:
+     *   - 'minimax'    : rational MIN over the adversary ghost
+     *   - 'alphabeta'  : rational MIN with α-β pruning
+     *   - 'expectimax' : the adversary ghost is a CHANCE node
+     *   Frightened ghosts are *always* CHANCE nodes regardless of mode —
+     *   they're not pursuing Pac-Man.
+     *
+     * Game-state simulation:
+     *   The recursion mutates a Set of remaining pellets via make/unmake.
+     *   When Pac-Man steps onto a pellet, the pellet is removed; the leaf
+     *   evaluator reads the current pellet count, which produces a strong
+     *   incentive to actually eat pellets (each missing pellet adds
+     *   PELLET_REWARD to the leaf utility).
+     *
+     * Anti-oscillation (the main reason the previous version looped):
+     *   - `recentCells`     : positions Pac-Man has recently been in. The
+     *                         leaf evaluator subtracts a penalty when the
+     *                         leaf position is one of them. This
+     *                         discourages backtracking.
+     *   - reversal penalty  : at the root, the move opposite to the current
+     *                         direction has a small constant subtracted from
+     *                         its value. Doesn't override real necessity
+     *                         (e.g. ghost ahead) but breaks ties so Pac-Man
+     *                         keeps moving forward through corridors.
+     *   - directional tie-  : on a (near-)tie at the root, prefer the move
+     *     breaking            matching the current direction.
+     *
+     * Multi-ghost awareness:
+     *   The leaf evaluator considers all *other* active ghosts via their
+     *   static positions (we don't simulate their moves). This stops Pac-Man
+     *   from fleeing the closest ghost into another one.
+     *
+     * Branching factor ≤ 4, depth 3 by default. α-β prunes ~60-80% of nodes
+     * in practice, so depth 3 stays well under 1ms per decision.
+     * ═══════════════════════════════════════════════════════════════════════
+     */
+
+    // Tunable weights. Centralised so they can be inspected/tweaked.
+    static get _SP_WEIGHTS() {
+        return {
+            CAPTURE: -10000,        // utility when caught
+            GHOST_DIST: 4,          // weight on ghost-distance (survival)
+            GHOST_DANGER_RADIUS: 3, // tiles within which extra panic kicks in
+            GHOST_DANGER_PENALTY: 80,
+            PELLET_DIST: 4,         // weight on distance-to-nearest-pellet
+            PELLET_REWARD: 12,      // utility per pellet remaining; eating a
+                                    // pellet thus adds +PELLET_REWARD to leaf
+                                    // utility (since the count drops by 1)
+            POWER_BONUS: 30,        // extra reward for eating a power pellet
+            BONUS_BONUS: 50,        // extra reward for eating a bonus fruit
+            REVISIT_PENALTY: 20,    // applied at the leaf if pacX,pacY ∈ recentCells
+            REVERSAL_PENALTY: 25,   // applied at the root for the move that is
+                                    // opposite of current direction
+            FRIGHTENED_HUNT: 14,    // weight on ghost-distance (when frightened)
+                                    // higher = chase harder
+            // EXACT_EPSILON is only for float-equality safety. We do NOT use
+            // a wide tie window because α-β can return tighter upper bounds
+            // than minimax's exact min at MIN nodes; a wide window would make
+            // those (true-value-strictly-worse) moves spuriously tie at the
+            // root and trigger the directional tie-breaker, making α-β and
+            // minimax disagree on otherwise-identical search trees.
+            EXACT_EPSILON: 1e-6
+        };
+    }
+
+    findDirectionForPacmanAI(pacX, pacY, ghosts, pellets, mode = 'minimax', depth = 3, opts = {}) {
+        const startTime = performance.now();
+        const counter = { nodes: 0 };
+        const W = Pathfinder._SP_WEIGHTS;
+
+        pacX = Math.round(pacX);
+        pacY = Math.round(pacY);
+
+        // Active ghosts that can currently catch Pac-Man.
+        const threats = (ghosts || []).filter(g =>
+            g.mode !== GhostMode.IN_HOUSE &&
+            g.mode !== GhostMode.LEAVING_HOUSE &&
+            g.mode !== GhostMode.EATEN
+        );
+
+        // Build a mutable Set of pellet positions so the search can simulate
+        // eating (delete on enter / restore on backtrack). Powers and bonus
+        // fruits get an extra one-shot reward applied when they're eaten.
+        const pelletSet = new Set();
+        const pelletExtra = new Map();
+        for (const p of (pellets || [])) {
+            if (p.eaten) continue;
+            const key = `${p.x},${p.y}`;
+            pelletSet.add(key);
+            if (p.type === 'power') pelletExtra.set(key, W.POWER_BONUS);
+            else if (p.type === 'bonus') pelletExtra.set(key, W.BONUS_BONUS);
+        }
+
+        // No threat → just walk to the nearest reachable pellet using BFS
+        // (true graph distance, not Manhattan). This is far cheaper and
+        // strictly better than running adversarial search with a static
+        // adversary at infinity.
+        if (threats.length === 0) {
+            return this._goToNearestPelletBFS(pacX, pacY, pelletSet, startTime);
+        }
+
+        // Closest active ghost — we recurse over its moves.
+        let adversary = threats[0];
+        let advD = Infinity;
+        for (const g of threats) {
+            const d = Math.abs(pacX - g.gridX) + Math.abs(pacY - g.gridY);
+            if (d < advD) { advD = d; adversary = g; }
+        }
+
+        // Other active ghosts — their static positions feed the leaf eval so
+        // Pac-Man avoids fleeing one ghost into another.
+        const otherGhosts = [];
+        for (const g of threats) {
+            if (g === adversary) continue;
+            otherGhosts.push({
+                x: Math.round(g.gridX),
+                y: Math.round(g.gridY),
+                frightened: g.mode === GhostMode.FRIGHTENED
+            });
+        }
+
+        const ctx = {
+            mode,
+            counter,
+            W,
+            pelletSet,
+            pelletExtra,
+            ghostFrightened: adversary.mode === GhostMode.FRIGHTENED,
+            otherGhosts,
+            recentCells: opts.recentCells instanceof Set ? opts.recentCells : new Set()
+        };
+
+        const ghostX = Math.round(adversary.gridX);
+        const ghostY = Math.round(adversary.gridY);
+        const ghostLastDir = adversary.direction;
+
+        // Root: Pac-Man (MAX) considers all 4 legal directions, including
+        // reversal. The move enumeration is reordered so the current
+        // direction comes first — combined with strict ">" comparison this
+        // means tied values resolve to "keep moving forward" naturally,
+        // without a separate tie-breaker that would mis-fire when α-β
+        // returns a cutoff bound (≤ alpha) instead of an exact value.
+        const rawMoves = this._adversarialMoves(pacX, pacY, null, true);
+        if (rawMoves.length === 0) {
+            return { direction: null, nodesExplored: 0, timeMs: performance.now() - startTime };
+        }
+
+        const currentDirName = (opts.currentDirection && opts.currentDirection.name) || null;
+        const oppositeName = currentDirName ? OPPOSITE_DIRECTIONS[currentDirName] : null;
+
+        // Order: current direction → non-reversal alternatives → reversal.
+        // Better move ordering also helps α-β prune more aggressively.
+        const pacMoves = rawMoves.slice().sort((a, b) => {
+            const score = (m) => m.dir.name === currentDirName ? 0
+                              : m.dir.name === oppositeName ? 2
+                              : 1;
+            return score(a) - score(b);
+        });
+
+        let bestDir = pacMoves[0].dir;
+        let bestVal = -Infinity;
+        let alpha = -Infinity;
+        const beta = Infinity;
+
+        for (const m of pacMoves) {
+            counter.nodes++;
+            let v;
+            if (m.nx === ghostX && m.ny === ghostY && !ctx.ghostFrightened) {
+                v = W.CAPTURE;
+            } else {
+                // Simulate eating any pellet sitting on (m.nx, m.ny).
+                const pkey = `${m.nx},${m.ny}`;
+                const ate = pelletSet.has(pkey);
+                let extra = 0;
+                if (ate) {
+                    pelletSet.delete(pkey);
+                    extra = pelletExtra.get(pkey) || 0;
+                }
+                // The eval at the leaf reads pelletSet.size; eating a pellet
+                // here therefore boosts the bubble-up value by ~PELLET_REWARD.
+                // `extra` adds a one-shot bonus for power/bonus pellets.
+                v = extra + this._spGhostNode(
+                    m.nx, m.ny, ghostX, ghostY, ghostLastDir,
+                    depth - 1, alpha, beta, ctx
+                );
+                if (ate) pelletSet.add(pkey);
+            }
+
+            // Anti-oscillation penalties (applied AFTER recursion so we
+            // don't perturb α-β bounds inside the recursion).
+            if (oppositeName && m.dir.name === oppositeName) {
+                v -= W.REVERSAL_PENALTY;
+            }
+            if (ctx.recentCells.has(`${m.nx},${m.ny}`)) {
+                v -= W.REVISIT_PENALTY;
+            }
+
+            // Strict ">" — the current-direction-first ordering above ensures
+            // ties keep us moving forward without a separate tie-breaker.
+            if (v > bestVal + W.EXACT_EPSILON) {
+                bestVal = v;
+                bestDir = m.dir;
+            }
+
+            if (mode === 'alphabeta') {
+                if (bestVal >= beta) break;
+                if (bestVal > alpha) alpha = bestVal;
+            }
+        }
+
+        const timeMs = performance.now() - startTime;
+        const statsKey = mode === 'alphabeta' ? 'alphabeta'
+                       : mode === 'expectimax' ? 'expectimax'
+                       : 'minimax';
+        AlgorithmStats[statsKey].totalCalls++;
+        AlgorithmStats[statsKey].totalNodesExplored += counter.nodes;
+        AlgorithmStats[statsKey].totalPathLength += 1;
+        AlgorithmStats[statsKey].totalTimeMs += timeMs;
+        AlgorithmStats[statsKey].pathsFound++;
+
+        return { direction: bestDir, nodesExplored: counter.nodes, timeMs };
+    }
+
+    // MIN node (rational ghost) for minimax / alphabeta.
+    // CHANCE node (uniform random ghost) for expectimax or frightened ghosts.
+    _spGhostNode(pacX, pacY, ghostX, ghostY, ghostLastDir, depth, alpha, beta, ctx) {
+        if (pacX === ghostX && pacY === ghostY && !ctx.ghostFrightened) {
+            return ctx.W.CAPTURE;
+        }
+        if (depth <= 0) {
+            return this._evaluateSelfPlay(pacX, pacY, ghostX, ghostY, ctx);
+        }
+
+        const ghostMoves = this._adversarialMoves(ghostX, ghostY, ghostLastDir, false);
+        if (ghostMoves.length === 0) {
+            return this._evaluateSelfPlay(pacX, pacY, ghostX, ghostY, ctx);
+        }
+
+        const isChance = ctx.ghostFrightened || ctx.mode === 'expectimax';
+
+        if (isChance) {
+            let sum = 0;
+            for (const m of ghostMoves) {
+                ctx.counter.nodes++;
+                sum += this._spPacmanNode(
+                    pacX, pacY, m.nx, m.ny, m.dir,
+                    depth, alpha, beta, ctx
+                );
+            }
+            return sum / ghostMoves.length;
+        }
+
+        // Rational MIN: ghost picks the move minimising Pac-Man utility.
+        let v = Infinity;
+        for (const m of ghostMoves) {
+            ctx.counter.nodes++;
+            const childV = this._spPacmanNode(
+                pacX, pacY, m.nx, m.ny, m.dir,
+                depth, alpha, beta, ctx
+            );
+            if (childV < v) v = childV;
+
+            if (ctx.mode === 'alphabeta') {
+                if (v <= alpha) return v;
+                if (v < beta) beta = v;
+            }
+        }
+        return v;
+    }
+
+    // MAX node — Pac-Man picks the move maximising utility. Mutates pelletSet
+    // via make/unmake so deeper layers see the eaten state.
+    _spPacmanNode(pacX, pacY, ghostX, ghostY, ghostLastDir, depth, alpha, beta, ctx) {
+        if (pacX === ghostX && pacY === ghostY && !ctx.ghostFrightened) {
+            return ctx.W.CAPTURE;
+        }
+        if (depth <= 0) {
+            return this._evaluateSelfPlay(pacX, pacY, ghostX, ghostY, ctx);
+        }
+
+        // Pac-Man can reverse freely.
+        const pacMoves = this._adversarialMoves(pacX, pacY, null, true);
+        if (pacMoves.length === 0) {
+            return this._evaluateSelfPlay(pacX, pacY, ghostX, ghostY, ctx);
+        }
+
+        let v = -Infinity;
+        for (const m of pacMoves) {
+            ctx.counter.nodes++;
+            let childV;
+            if (m.nx === ghostX && m.ny === ghostY && !ctx.ghostFrightened) {
+                childV = ctx.W.CAPTURE;
+            } else {
+                const pkey = `${m.nx},${m.ny}`;
+                const ate = ctx.pelletSet.has(pkey);
+                let extra = 0;
+                if (ate) {
+                    ctx.pelletSet.delete(pkey);
+                    extra = ctx.pelletExtra.get(pkey) || 0;
+                }
+                childV = extra + this._spGhostNode(
+                    m.nx, m.ny, ghostX, ghostY, ghostLastDir,
+                    depth - 1, alpha, beta, ctx
+                );
+                if (ate) ctx.pelletSet.add(pkey);
+            }
+            if (childV > v) v = childV;
+
+            if (ctx.mode === 'alphabeta') {
+                if (v >= beta) return v;
+                if (v > alpha) alpha = v;
+            }
+        }
+        return v;
+    }
+
+    /**
+     * Leaf evaluation from Pac-Man's perspective. Higher = better.
+     *
+     * Components:
+     *   safety           : grow with distance to closest active ghost; large
+     *                      panic penalty inside GHOST_DANGER_RADIUS.
+     *   pellet attraction: −distance to nearest *remaining* pellet (Manhattan).
+     *                      Computed against the live pelletSet, so as the
+     *                      search "eats" pellets the nearest-pellet target
+     *                      naturally shifts.
+     *   pellet pressure  : −PELLET_REWARD × |pelletSet|. Each pellet eaten
+     *                      during the search shrinks this term, producing a
+     *                      direct in-tree reward of +PELLET_REWARD per eaten
+     *                      pellet — the single most important fix for the
+     *                      original oscillation bug.
+     *   revisit penalty  : −REVISIT_PENALTY if (pacX,pacY) is in recentCells.
+     *
+     * Frightened mode flips the safety term so Pac-Man hunts the ghost.
+     */
+    _evaluateSelfPlay(pacX, pacY, ghostX, ghostY, ctx) {
+        const W = ctx.W;
+
+        // Closest active threat (closest among adversary + other ghosts).
+        let distClosestThreat;
+        if (ctx.ghostFrightened) {
+            distClosestThreat = Infinity;
+        } else {
+            distClosestThreat = Math.abs(pacX - ghostX) + Math.abs(pacY - ghostY);
+        }
+        for (const g of ctx.otherGhosts) {
+            if (g.frightened) continue;
+            const d = Math.abs(pacX - g.x) + Math.abs(pacY - g.y);
+            if (d < distClosestThreat) distClosestThreat = d;
+        }
+
+        // Nearest pellet (Manhattan over the live, mutable pelletSet).
+        let distNearestPellet = 0;
+        const pelletsRemaining = ctx.pelletSet.size;
+        if (pelletsRemaining > 0) {
+            let minP = Infinity;
+            for (const key of ctx.pelletSet) {
+                const commaIdx = key.indexOf(',');
+                const px = +key.slice(0, commaIdx);
+                const py = +key.slice(commaIdx + 1);
+                const d = Math.abs(pacX - px) + Math.abs(pacY - py);
+                if (d < minP) minP = d;
+            }
+            distNearestPellet = minP === Infinity ? 0 : minP;
+        }
+
+        let value;
+
+        if (ctx.ghostFrightened && distClosestThreat !== Infinity) {
+            // Hunt mode: closer to the (frightened) adversary is better, but
+            // we also still want pellets and don't want to be near OTHER
+            // active ghosts (already factored into distClosestThreat above
+            // via otherGhosts).
+            const distAdv = Math.abs(pacX - ghostX) + Math.abs(pacY - ghostY);
+            value = 300
+                  - distAdv * W.FRIGHTENED_HUNT
+                  - distNearestPellet * W.PELLET_DIST
+                  - pelletsRemaining * W.PELLET_REWARD;
+        } else {
+            // Survival mode: stay away from threats, go to pellets, clear them.
+            let safety = distClosestThreat * W.GHOST_DIST;
+            if (distClosestThreat <= W.GHOST_DANGER_RADIUS) {
+                // Steeper penalty as the ghost gets closer.
+                const closeness = (W.GHOST_DANGER_RADIUS + 1) - distClosestThreat;
+                safety -= closeness * W.GHOST_DANGER_PENALTY;
+            }
+            value = safety
+                  - distNearestPellet * W.PELLET_DIST
+                  - pelletsRemaining * W.PELLET_REWARD;
+        }
+
+        // Anti-revisit: if Pac-Man is back on a recently-visited cell, this
+        // path is probably a loop — make it strictly worse than a fresh cell
+        // with the same naive utility.
+        if (ctx.recentCells.has(`${pacX},${pacY}`)) {
+            value -= W.REVISIT_PENALTY;
+        }
+
+        return value;
+    }
+
+    // BFS to the nearest pellet using true graph distance — used by the
+    // no-threat fast path. Returns a {direction, nodesExplored, timeMs}
+    // result compatible with findDirectionForPacmanAI's return shape.
+    _goToNearestPelletBFS(pacX, pacY, pelletSet, startTime) {
+        if (pelletSet.size === 0) {
+            return { direction: null, nodesExplored: 0, timeMs: performance.now() - startTime };
+        }
+
+        // Single-source BFS from Pac-Man, stop on first pellet hit.
+        const startKey = `${pacX},${pacY}`;
+        const visited = new Set([startKey]);
+        const parent = new Map();
+        const queue = [{ x: pacX, y: pacY, key: startKey }];
+        const dirs = [
+            { dir: DIRECTIONS.UP, dx: 0, dy: -1 },
+            { dir: DIRECTIONS.DOWN, dx: 0, dy: 1 },
+            { dir: DIRECTIONS.LEFT, dx: -1, dy: 0 },
+            { dir: DIRECTIONS.RIGHT, dx: 1, dy: 0 }
+        ];
+
+        let nodesExplored = 0;
+        let goalKey = null;
+
+        while (queue.length > 0) {
+            const cur = queue.shift();
+            nodesExplored++;
+            if (pelletSet.has(cur.key) && cur.key !== startKey) {
+                goalKey = cur.key;
+                break;
+            }
+            for (const { dir, dx, dy } of dirs) {
+                if (!this.maze.isPassable(cur.x, cur.y, dir)) continue;
+                let nx = cur.x + dx;
+                let ny = cur.y + dy;
+                if (ny < 0 || ny >= this.maze.height) continue;
+                if (nx < 0) nx = this.maze.width - 1;
+                else if (nx >= this.maze.width) nx = 0;
+                const nkey = `${nx},${ny}`;
+                if (visited.has(nkey)) continue;
+                visited.add(nkey);
+                parent.set(nkey, { from: cur.key, direction: dir });
+                queue.push({ x: nx, y: ny, key: nkey });
+            }
+        }
+
+        if (!goalKey) {
+            return { direction: null, nodesExplored, timeMs: performance.now() - startTime };
+        }
+
+        // Walk back from the goal to the first move.
+        let firstDir = null;
+        let cursor = goalKey;
+        while (cursor !== startKey && parent.has(cursor)) {
+            const { from, direction } = parent.get(cursor);
+            firstDir = direction;
+            cursor = from;
+        }
+
+        return { direction: firstDir, nodesExplored, timeMs: performance.now() - startTime };
+    }
+
+    // Enumerate legal moves from (x, y). Honours wall passages, vertical
+    // bounds, and horizontal tunnel wrapping. `lastDir` is used to forbid
+    // 180° reversals when `allowReverse` is false (ghost behaviour).
+    _adversarialMoves(x, y, lastDir, allowReverse) {
+        const moves = [];
+        const opposite = (lastDir && lastDir.name) ? OPPOSITE_DIRECTIONS[lastDir.name] : null;
+        const dirs = [DIRECTIONS.UP, DIRECTIONS.DOWN, DIRECTIONS.LEFT, DIRECTIONS.RIGHT];
+
+        for (const dir of dirs) {
+            if (!allowReverse && dir.name === opposite) continue;
+            if (!this.maze.isPassable(x, y, dir)) continue;
+
+            let nx = x + dir.x;
+            let ny = y + dir.y;
+
+            // Vertical bounds — no vertical wrap.
+            if (ny < 0 || ny >= this.maze.height) continue;
+            // Horizontal tunnel wrap.
+            if (nx < 0) nx = this.maze.width - 1;
+            else if (nx >= this.maze.width) nx = 0;
+
+            moves.push({ dir, nx, ny });
+        }
+        return moves;
+    }
+
+    /**
+     * Get next direction for ghosts using the configured pathfinding
+     * algorithm. Adversarial algorithms (Minimax / Alpha-Beta / Expectimax)
+     * are NOT used here — they drive Pac-Man self-play instead, see
+     * `findDirectionForPacmanAI`.
      */
     getNextDirection(startX, startY, goalX, goalY, currentDirection = null) {
-        // Read the current algorithm (can be changed at runtime)
         const algo = window.PATHFINDING_ALGORITHM || PATHFINDING_ALGORITHM;
-        
+
         switch (algo) {
             case 'BFS': {
                 const result = this.findPathBFS(startX, startY, goalX, goalY);
@@ -890,7 +1382,7 @@ class Ghost extends Entity {
         // Normal movement - choose direction at intersections
         const currentCellKey = `${this.gridX},${this.gridY}`;
         const atNewCell = currentCellKey !== this.lastDecisionCell;
-        
+
         if ((this.isAtCenter() && atNewCell) || this.direction === DIRECTIONS.NONE || !this.direction) {
             this.snapToGrid();
             const target = this.getTarget(pacman, blinky);
@@ -1130,11 +1622,10 @@ class Ghost extends Entity {
             this.pathfinder = new Pathfinder(maze);
         }
 
-        // Use the pathfinder to get next direction
         const nextDir = this.pathfinder.getNextDirection(
-            this.gridX, 
-            this.gridY, 
-            target.x, 
+            this.gridX,
+            this.gridY,
+            target.x,
             target.y,
             this.direction
         );
@@ -1488,17 +1979,32 @@ class Clyde extends Ghost {
 }
 
 // ============ PELLET CLASS ============
+// Three pellet types are supported:
+//   - 'regular': small dot, 10 pts
+//   - 'power':   large pulsing dot, 50 pts, frightens ghosts
+//   - 'bonus':   fruit (cherry-style icon), 100 pts, no side effect
+// `isPower` is kept as a derived getter for backwards compatibility with code
+// elsewhere in this file (e.g. collision handler).
 class Pellet {
-    constructor(x, y, isPower = false) {
+    constructor(x, y, type = 'regular') {
         this.x = x;
         this.y = y;
-        this.isPower = isPower;
+        this.type = type;
         this.eaten = false;
         this.animationFrame = 0;
     }
 
+    get isPower() {
+        return this.type === 'power';
+    }
+
+    get isBonus() {
+        return this.type === 'bonus';
+    }
+
     update(deltaTime) {
-        if (this.isPower) {
+        // Animate any pellet type that has a visual effect
+        if (this.type !== 'regular') {
             this.animationFrame += deltaTime * 0.005;
         }
     }
@@ -1509,7 +2015,7 @@ class Pellet {
         const cx = this.x * cellSize + cellSize / 2;
         const cy = this.y * cellSize + cellSize / 2;
 
-        if (this.isPower) {
+        if (this.type === 'power') {
             // Pulsing power pellet
             const pulse = 0.8 + Math.sin(this.animationFrame) * 0.2;
             const radius = 6 * pulse;
@@ -1518,12 +2024,48 @@ class Pellet {
             ctx.arc(cx, cy, radius, 0, Math.PI * 2);
             ctx.fillStyle = GAME_CONFIG.COLORS.powerPellet;
             ctx.fill();
+        } else if (this.type === 'bonus') {
+            this.drawBonusFruit(ctx, cx, cy, cellSize);
         } else {
             ctx.beginPath();
             ctx.arc(cx, cy, 2, 0, Math.PI * 2);
             ctx.fillStyle = GAME_CONFIG.COLORS.pellet;
             ctx.fill();
         }
+    }
+
+    // Cherry-style fruit drawn with two overlapping circles + a green stem.
+    // The body gently bobs to make it visually distinct from power pellets.
+    drawBonusFruit(ctx, cx, cy, cellSize) {
+        const bob = Math.sin(this.animationFrame * 1.5) * 1.2;
+        const bodyRadius = Math.max(3, cellSize * 0.18);
+        const dx = bodyRadius * 0.7;
+
+        // Two cherries side by side
+        ctx.fillStyle = GAME_CONFIG.COLORS.bonusPellet;
+        ctx.beginPath();
+        ctx.arc(cx - dx, cy + bob + 1, bodyRadius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx + dx, cy + bob + 1, bodyRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Highlight dots for a glossy look
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(cx - dx - bodyRadius * 0.35, cy + bob, bodyRadius * 0.25, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Green stems joining at the top
+        ctx.strokeStyle = GAME_CONFIG.COLORS.bonusStem;
+        ctx.lineWidth = 1.5;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(cx - dx, cy + bob - bodyRadius);
+        ctx.quadraticCurveTo(cx, cy + bob - bodyRadius * 2.2, cx, cy + bob - bodyRadius * 1.6);
+        ctx.moveTo(cx + dx, cy + bob - bodyRadius);
+        ctx.quadraticCurveTo(cx, cy + bob - bodyRadius * 2.2, cx, cy + bob - bodyRadius * 1.6);
+        ctx.stroke();
     }
 }
 
@@ -1542,15 +2084,24 @@ class GameMaze {
     initPellets() {
         this.pellets = [];
         const powerPelletPositions = this.getPowerPelletPositions();
+        const bonusPositions = this.getBonusPelletPositions(powerPelletPositions);
+
+        const isAt = (positions, x, y) => positions.some(p => p.x === x && p.y === y);
 
         for (const [key, cell] of Object.entries(this.cells)) {
             // Skip ghost house cells
             if (cell.is_ghost_house) continue;
 
             const [x, y] = key.split(',').map(Number);
-            const isPower = powerPelletPositions.some(p => p.x === x && p.y === y);
 
-            this.pellets.push(new Pellet(x, y, isPower));
+            let type = 'regular';
+            if (isAt(powerPelletPositions, x, y)) {
+                type = 'power';
+            } else if (isAt(bonusPositions, x, y)) {
+                type = 'bonus';
+            }
+
+            this.pellets.push(new Pellet(x, y, type));
         }
     }
 
@@ -1562,6 +2113,39 @@ class GameMaze {
             { x: 1, y: this.height - 2 },
             { x: this.width - 2, y: this.height - 2 }
         ];
+    }
+
+    // Pick a few playable cells (not ghost-house, not already a power pellet)
+    // to host bonus fruits. Deterministic for the same maze + game start.
+    getBonusPelletPositions(excludePositions = []) {
+        const exclude = new Set(excludePositions.map(p => `${p.x},${p.y}`));
+        const candidates = [];
+
+        for (const [key, cell] of Object.entries(this.cells)) {
+            if (cell.is_ghost_house) continue;
+            if (exclude.has(key)) continue;
+            // Prefer junctions / cells with multiple passages so the bonus is
+            // somewhere players actually pass through.
+            if (!cell.passages || cell.passages.length < 2) continue;
+            candidates.push({ x: cell.x, y: cell.y });
+        }
+
+        const desired = Math.min(GAME_CONFIG.BONUS_PELLET_COUNT, candidates.length);
+        if (desired <= 0) return [];
+
+        // Pick `desired` cells spread across the maze. We sort by a hash of the
+        // coordinates so placement is stable for the same maze layout.
+        candidates.sort((a, b) =>
+            ((a.x * 73856093) ^ (a.y * 19349663)) -
+            ((b.x * 73856093) ^ (b.y * 19349663))
+        );
+        const step = Math.max(1, Math.floor(candidates.length / desired));
+        const picks = [];
+        for (let i = 0; i < desired; i++) {
+            const idx = Math.min(candidates.length - 1, i * step);
+            picks.push(candidates[idx]);
+        }
+        return picks;
     }
 
     isPassable(x, y, direction) {
@@ -1977,6 +2561,26 @@ class GameEngine {
         this.level = 1;
         this.ghostsEatenCombo = 0;
 
+        // Pac-Man movement counter — increments each time Pac-Man crosses
+        // into a new grid cell. Used to answer "in how many moves was
+        // Pac-Man caught?" for both live play and replay modes.
+        this.pacmanSteps = 0;
+        this.lastPacmanCell = null;
+        this.caughtAtStep = null;
+        // Capture the step at which the previous death happened so the UI
+        // can show e.g. "caught at step 142, then 287".
+        this.caughtHistory = [];
+
+        // Pac-Man self-play AI: re-uses the Pathfinder so we don't reallocate
+        // it every frame. `lastPacmanAICell` throttles AI calls to once per
+        // visited cell so we don't spend CPU re-deciding mid-traversal.
+        // `pacmanRecentCells` is a short FIFO of cells Pac-Man has just been
+        // in — passed into the AI as a Set for the anti-revisit penalty.
+        this.pacmanAIPathfinder = null;
+        this.lastPacmanAICell = null;
+        this.pacmanRecentCells = [];
+        this.PACMAN_RECENT_LIMIT = 8;
+
         // Timer
         this.gameTime = 0;
         this.modeTimer = 0;
@@ -2014,6 +2618,8 @@ class GameEngine {
         this.onGameOver = null;
         this.onLevelComplete = null;
         this.onTimeUpdate = null;
+        this.onPacmanCaught = null;
+        this.onStepCountChange = null;
     }
 
     initEntities() {
@@ -2178,8 +2784,38 @@ class GameEngine {
             this.applyReplayEvents();
         }
 
+        // Pac-Man self-play AI (Minimax / Alpha-Beta / Expectimax). Picks the
+        // next direction once per cell visit so we don't burn CPU re-deciding
+        // mid-traversal. Disabled during input-replay so the recorded
+        // trajectory is honoured verbatim.
+        if (this._pacmanAIEnabled() && this.mode !== 'INPUT_REPLAY') {
+            this._maybeRunPacmanAI();
+        }
+
         // Update Pac-Man
         this.pacman.update(this.maze, deltaTime);
+
+        // Step counter: increment each time Pac-Man enters a new cell.
+        // This is what we report as "moves until caught".
+        const pacKey = `${this.pacman.gridX},${this.pacman.gridY}`;
+        if (pacKey !== this.lastPacmanCell) {
+            // Skip the very first observation (no movement yet), otherwise
+            // initialisation alone would count as "1 step".
+            if (this.lastPacmanCell !== null) {
+                this.pacmanSteps++;
+                if (this.onStepCountChange) {
+                    this.onStepCountChange(this.pacmanSteps);
+                }
+            }
+            this.lastPacmanCell = pacKey;
+
+            // Maintain a short FIFO of recently-visited cells for the
+            // self-play AI's anti-revisit heuristic.
+            this.pacmanRecentCells.push(pacKey);
+            if (this.pacmanRecentCells.length > this.PACMAN_RECENT_LIMIT) {
+                this.pacmanRecentCells.shift();
+            }
+        }
 
         // Skip ghost simulation when recording the ghost-free trajectory
         if (this.mode !== 'NO_GHOSTS') {
@@ -2207,6 +2843,57 @@ class GameEngine {
                 this.pacman.stopMovement();
             }
             this.inputReplayIndex++;
+        }
+    }
+
+    // True when a Pac-Man self-play algorithm is selected.
+    _pacmanAIEnabled() {
+        const algo = window.PACMAN_AI;
+        return algo === 'MINIMAX' || algo === 'ALPHABETA' || algo === 'EXPECTIMAX';
+    }
+
+    // Run the Pac-Man AI at most once per cell visit. The chosen direction
+    // is queued via `setDirection`, exactly like a keypress, so the rest of
+    // the engine (movement, recording, replay capture) sees a single
+    // unified input stream.
+    _maybeRunPacmanAI() {
+        const cellKey = `${this.pacman.gridX},${this.pacman.gridY}`;
+        // Re-decide each time Pac-Man enters a new cell, OR if he is sitting
+        // still (no direction) — otherwise he could get stuck after spawn.
+        const idle = this.pacman.direction === DIRECTIONS.NONE;
+        if (!idle && cellKey === this.lastPacmanAICell) return;
+        this.lastPacmanAICell = cellKey;
+
+        if (!this.pacmanAIPathfinder || this.pacmanAIPathfinder.maze !== this.maze) {
+            this.pacmanAIPathfinder = new Pathfinder(this.maze);
+        }
+
+        const algo = window.PACMAN_AI;
+        const mode = algo === 'ALPHABETA' ? 'alphabeta'
+                   : algo === 'EXPECTIMAX' ? 'expectimax'
+                   : 'minimax';
+
+        const result = this.pacmanAIPathfinder.findDirectionForPacmanAI(
+            this.pacman.gridX,
+            this.pacman.gridY,
+            this.ghosts,
+            this.maze.pellets,
+            mode,
+            3,   // search depth (Pac-Man plies)
+            {
+                // The AI uses both to break ties stably and avoid loops.
+                recentCells: new Set(this.pacmanRecentCells),
+                currentDirection: this.pacman.direction
+            }
+        );
+
+        if (!result || !result.direction) return;
+
+        // Drive Pac-Man through the same entry point that the keyboard uses,
+        // so the existing recording infrastructure captures AI moves too.
+        this.pacman.setDirection(result.direction);
+        if (this.inputRecording.isRecording) {
+            this.inputRecording.recordEvent(this.gameTime, 'direction', result.direction.name);
         }
     }
 
@@ -2245,9 +2932,11 @@ class GameEngine {
             if (distance < 0.5) {
                 pellet.eaten = true;
 
-                if (pellet.isPower) {
+                if (pellet.type === 'power') {
                     this.addScore(GAME_CONFIG.POWER_PELLET_SCORE);
                     this.activatePowerMode();
+                } else if (pellet.type === 'bonus') {
+                    this.addScore(GAME_CONFIG.BONUS_PELLET_SCORE);
                 } else {
                     this.addScore(GAME_CONFIG.PELLET_SCORE);
                 }
@@ -2298,6 +2987,17 @@ class GameEngine {
         this.pacman.die();
         this.state = GameState.DYING;
 
+        // Snapshot the step count at the moment Pac-Man was caught.
+        this.caughtAtStep = this.pacmanSteps;
+        this.caughtHistory.push({
+            step: this.pacmanSteps,
+            timeMs: Math.floor(this.gameTime),
+            lives: this.lives - 1
+        });
+        if (this.onPacmanCaught) {
+            this.onPacmanCaught(this.pacmanSteps, Math.floor(this.gameTime));
+        }
+
         setTimeout(() => {
             this.lives--;
             if (this.onLivesChange) this.onLivesChange(this.lives);
@@ -2321,6 +3021,14 @@ class GameEngine {
         for (const ghost of this.ghosts) {
             ghost.reset();
         }
+
+        // Reset cell tracking so the first cell after respawn is not counted as a move.
+        this.lastPacmanCell = null;
+        // Force the self-play AI to re-decide on the very first frame after spawn.
+        this.lastPacmanAICell = null;
+        // Clear the recent-cells history so the AI doesn't think the
+        // post-respawn position is part of an old loop.
+        this.pacmanRecentCells = [];
     }
 
     levelComplete() {
@@ -2382,8 +3090,10 @@ class GameEngine {
             this.start();
         }
         if (this.state === GameState.PLAYING && this.pacman) {
-            // Ignore live input while replaying a recorded trajectory
+            // Ignore live input while replaying a recorded trajectory or
+            // while Pac-Man is being driven by a self-play AI.
             if (this.mode === 'INPUT_REPLAY') return;
+            if (this._pacmanAIEnabled()) return;
 
             this.pacman.setDirection(direction);
             // Capture for later replay (Task 4)
@@ -2396,6 +3106,7 @@ class GameEngine {
     pacmanStop() {
         if (!this.pacman) return;
         if (this.mode === 'INPUT_REPLAY') return;
+        if (this._pacmanAIEnabled()) return;
         this.pacman.stopMovement();
         if (this.inputRecording.isRecording) {
             this.inputRecording.recordEvent(this.gameTime, 'stop');

@@ -169,6 +169,18 @@
                             <div class="legend-color ghost-house"></div>
                             <span>Ghost House</span>
                         </div>
+                        <div class="legend-item">
+                            <div class="legend-color pellet-regular"></div>
+                            <span>Pellet (10 pts)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color pellet-power"></div>
+                            <span>Power Pellet (50 pts)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color pellet-bonus"></div>
+                            <span>Bonus Fruit (100 pts)</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -182,6 +194,11 @@
 
             <div class="gallery-controls">
                 <input type="text" class="gallery-search" placeholder="Search mazes...">
+                <select id="gallerySort" class="input-number" style="width: 160px;">
+                    <option value="newest">NEWEST</option>
+                    <option value="oldest">OLDEST</option>
+                    <option value="best">BEST RATED</option>
+                </select>
                 <button id="refreshGalleryBtn" class="btn btn-secondary">REFRESH</button>
             </div>
 
@@ -220,6 +237,14 @@
                         <div class="stat-label">LEVEL</div>
                         <div class="stat-value" id="gameLevel">1</div>
                     </div>
+                    <div class="stat-item">
+                        <div class="stat-label">STEPS</div>
+                        <div class="stat-value" id="gameSteps">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">CAUGHT @</div>
+                        <div class="stat-value" id="gameCaughtAt">--</div>
+                    </div>
                 </div>
 
                 <div class="game-canvas-wrapper">
@@ -232,83 +257,101 @@
                     </div>
                 </div>
 
-                <div class="game-buttons" style="display: flex; gap: 15px; justify-content: center; margin-top: 20px; flex-wrap: wrap;">
+                <!-- ===== Game actions (start / pause) ===== -->
+                <div class="game-actions">
                     <button class="btn btn-primary" onclick="restartGame()">RESTART</button>
                     <button class="btn btn-secondary" onclick="pauseGame()">PAUSE</button>
-                    <button id="recordBtn" class="btn btn-danger" onclick="toggleRecording()">RECORD</button>
-                    <button class="btn btn-secondary" onclick="playLastRecording()">REPLAY</button>
-                    <button class="btn btn-secondary" onclick="downloadRecording()">DOWNLOAD</button>
                 </div>
 
-                <!-- Trajectory Workflow (Tasks 4-5-6) -->
-                <div class="trajectory-workflow" style="margin-top: 20px; padding: 15px; background: rgba(255, 184, 82, 0.1); border: 2px solid var(--accent-color, #FFB852); border-radius: 8px;">
-                    <div style="font-family: 'Press Start 2P', monospace; font-size: 10px; color: var(--accent-color, #FFB852); text-align: center; margin-bottom: 12px;">
-                        TRAJECTORY WORKFLOW
-                    </div>
-                    <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-                        <button id="recordTrajectoryBtn" class="btn btn-danger" onclick="toggleTrajectoryRecording()">
-                            4. RECORD (NO GHOSTS)
-                        </button>
-                        <button class="btn btn-primary" onclick="replayWithGhosts()">
-                            5. REPLAY WITH GHOSTS
-                        </button>
-                        <button id="saveWithGhostsBtn" class="btn btn-success" onclick="toggleSaveWithGhosts()">
-                            6. SAVE WITH GHOSTS
-                        </button>
-                        <button class="btn btn-secondary" onclick="downloadTrajectory()">
-                            DL TRAJECTORY
-                        </button>
-                        <button class="btn btn-secondary" onclick="downloadWithGhostsRecording()">
-                            DL WITH-GHOSTS
-                        </button>
-                    </div>
-                    <div id="trajectoryStatus" style="margin-top: 10px; font-size: 9px; color: var(--text-muted); text-align: center; line-height: 1.5;">
-                        1) Record Pac-Man's path without ghosts &nbsp;&middot;&nbsp;
-                        2) Replay it with ghosts (uses selected AI) &nbsp;&middot;&nbsp;
-                        3) Save the replay
-                    </div>
-                </div>
+                <!-- The two control panels sit side-by-side on wide viewports -->
+                <!-- and stack into a single column on narrower screens.        -->
+                <div class="play-control-grid">
 
-                <!-- Algorithm Selector -->
-                <div class="algorithm-selector" style="margin-top: 25px; padding: 15px; background: rgba(33, 33, 222, 0.2); border: 2px solid var(--primary-color); border-radius: 8px;">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 20px; flex-wrap: wrap;">
-                        <div style="color: var(--primary-color); font-family: 'Press Start 2P', monospace; font-size: 10px;">
-                            GHOST AI ALGORITHM:
+                    <!-- ===== Recording & Playback ===== -->
+                    <!-- Three sub-rows, each with equal-width buttons:           -->
+                    <!--   QUICK   : raw frame-by-frame record / replay / dl      -->
+                    <!--   STEPS   : the 3-step trajectory workflow               -->
+                    <!--   EXPORT  : download the captured JSON files             -->
+                    <div class="ctrl-panel ctrl-panel--recording">
+                        <div class="ctrl-panel__title">RECORDING &amp; PLAYBACK</div>
+
+                        <div class="rec-section">
+                            <div class="ai-section__heading" style="color:var(--ghost-orange)">QUICK CAPTURE</div>
+                            <div class="ctrl-row">
+                                <span class="ctrl-row__label">FRAME</span>
+                                <div class="ctrl-row__btns ctrl-row__btns--equal">
+                                    <button id="recordBtn" class="btn btn-danger" onclick="toggleRecording()">RECORD</button>
+                                    <button class="btn btn-secondary" onclick="playLastRecording()">REPLAY</button>
+                                    <button class="btn btn-secondary" onclick="downloadRecording()">DOWNLOAD</button>
+                                </div>
+                            </div>
                         </div>
-                        <div style="display: flex; gap: 10px;">
-                            <button id="algoGreedy" class="algo-btn" onclick="setAlgorithm('GREEDY')">GREEDY</button>
-                            <button id="algoBFS" class="algo-btn algo-active" onclick="setAlgorithm('BFS')">BFS</button>
-                            <button id="algoAStar" class="algo-btn" onclick="setAlgorithm('ASTAR')">A*</button>
+
+                        <div class="rec-section">
+                            <div class="ai-section__heading" style="color:var(--ghost-orange)">TRAJECTORY WORKFLOW</div>
+                            <div class="ctrl-row">
+                                <span class="ctrl-row__label">STEPS</span>
+                                <div class="ctrl-row__btns ctrl-row__btns--equal">
+                                    <button id="recordTrajectoryBtn" class="btn btn-danger" onclick="toggleTrajectoryRecording()">1. RECORD PATH</button>
+                                    <button class="btn btn-primary" onclick="replayWithGhosts()">2. REPLAY</button>
+                                    <button id="saveWithGhostsBtn" class="btn btn-success" onclick="toggleSaveWithGhosts()">3. SAVE</button>
+                                </div>
+                            </div>
+                            <div class="ctrl-row">
+                                <span class="ctrl-row__label">EXPORT</span>
+                                <div class="ctrl-row__btns ctrl-row__btns--equal">
+                                    <button class="btn btn-secondary" onclick="downloadTrajectory()">TRAJECTORY .JSON</button>
+                                    <button class="btn btn-secondary" onclick="downloadWithGhostsRecording()">REPLAY .JSON</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="trajectoryStatus" class="ctrl-panel__status">
+                            Record Pac-Man's path without ghosts, replay it with ghosts (using the selected AI), then save the replay.
                         </div>
                     </div>
-                    <div id="algoDescription" style="margin-top: 12px; font-size: 9px; color: var(--text-muted); text-align: center; line-height: 1.6;">
-                        <strong style="color: #00ff00;">BFS (Breadth-First Search):</strong> Explores all paths level by level. Guarantees shortest path but explores more nodes.
-                    </div>
-                    <div id="algoStats" style="margin-top: 10px; font-size: 8px; color: var(--accent-color); text-align: center; font-family: monospace;">
-                        Stats will appear after 10 seconds of gameplay...
-                    </div>
-                </div>
 
-                <style>
-                    .algo-btn {
-                        padding: 8px 16px;
-                        font-family: 'Press Start 2P', monospace;
-                        font-size: 9px;
-                        border: 2px solid var(--primary-color);
-                        background: transparent;
-                        color: var(--primary-color);
-                        cursor: pointer;
-                        transition: all 0.2s;
-                    }
-                    .algo-btn:hover {
-                        background: rgba(33, 33, 222, 0.3);
-                    }
-                    .algo-btn.algo-active {
-                        background: var(--primary-color);
-                        color: #000;
-                        box-shadow: 0 0 10px var(--primary-color);
-                    }
-                </style>
+                    <!-- ===== AI Configuration ===== -->
+                    <div class="ctrl-panel ctrl-panel--ai">
+                        <div class="ctrl-panel__title">AI CONFIGURATION</div>
+
+                        <div class="ai-section">
+                            <div class="ai-section__heading ai-section__heading--ghost">GHOST AI</div>
+                            <div class="ctrl-row">
+                                <span class="ctrl-row__label ctrl-row__label--ghost">ALGORITHM</span>
+                                <div class="ctrl-row__btns ctrl-row__btns--equal">
+                                    <button id="algoGreedy" class="algo-btn" onclick="setAlgorithm('GREEDY')">GREEDY</button>
+                                    <button id="algoBFS" class="algo-btn algo-active" onclick="setAlgorithm('BFS')">BFS</button>
+                                    <button id="algoAStar" class="algo-btn" onclick="setAlgorithm('ASTAR')">A*</button>
+                                </div>
+                            </div>
+                            <div id="algoDescription" class="ctrl-panel__desc">
+                                <strong style="color: #00ff00;">BFS (Breadth-First Search):</strong> Explores all paths level by level. Guarantees shortest path but explores more nodes.
+                            </div>
+                        </div>
+
+                        <div class="ai-section">
+                            <div class="ai-section__heading ai-section__heading--pacman">PAC-MAN AI</div>
+                            <div class="ctrl-row">
+                                <span class="ctrl-row__label ctrl-row__label--pacman">MODE</span>
+                                <div class="ctrl-row__btns ctrl-row__btns--equal">
+                                    <button id="pacAIOff" class="algo-btn pacai-btn algo-active" onclick="setPacmanAI('OFF')">MANUAL</button>
+                                    <button id="pacAIMINIMAX" class="algo-btn pacai-btn" onclick="setPacmanAI('MINIMAX')">MINIMAX</button>
+                                    <button id="pacAIALPHABETA" class="algo-btn pacai-btn" onclick="setPacmanAI('ALPHABETA')">α-β</button>
+                                    <button id="pacAIEXPECTIMAX" class="algo-btn pacai-btn" onclick="setPacmanAI('EXPECTIMAX')">EXPECTIMAX</button>
+                                </div>
+                            </div>
+                            <div id="pacAIDescription" class="ctrl-panel__desc">
+                                Manual: Pac-Man is controlled with the keyboard. When an AI is selected, Pac-Man plays alone — keyboard input is ignored, and the chosen adversarial algorithm picks each move.
+                            </div>
+                        </div>
+
+                        <div id="algoStats" class="ctrl-panel__stats">
+                            Stats will appear after a few seconds of gameplay...
+                        </div>
+                    </div>
+
+                </div>
 
                 <div class="game-controls-hint">
                     <p>Controls:</p>

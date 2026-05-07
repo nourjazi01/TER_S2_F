@@ -568,6 +568,37 @@ input[type="range"]::-moz-range-thumb {
 .legend-color.tunnel { background: var(--ghost-pink); }
 .legend-color.ghost-house { background: var(--ghost-red); opacity: 0.6; }
 .legend-color.pellet { background: var(--pellet-white); }
+.legend-color.pellet-regular {
+    background: transparent;
+    border: 1px solid var(--wall-blue);
+    position: relative;
+}
+.legend-color.pellet-regular::after {
+    content: '';
+    position: absolute;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--pellet-white);
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
+}
+.legend-color.pellet-power {
+    background: var(--pacman-yellow);
+    border-radius: 50%;
+    box-shadow: 0 0 6px var(--pacman-yellow);
+}
+.legend-color.pellet-bonus {
+    background: #FF3333;
+    border-radius: 50%;
+    box-shadow: 0 0 4px #FF3333;
+    position: relative;
+}
+.legend-color.pellet-bonus::after {
+    content: '';
+    position: absolute;
+    width: 2px; height: 6px;
+    background: #00AA00;
+    top: -3px; left: 50%; transform: translateX(-50%);
+}
 
 /* ============ GALLERY ============ */
 .gallery-controls {
@@ -650,6 +681,53 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .maze-card-date {
+    font-size: 7px;
+    color: var(--ghost-cyan);
+}
+
+.maze-card-rating {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+    padding: 6px 0;
+    border-top: 1px dashed var(--wall-blue);
+}
+
+.rating-stars {
+    display: inline-flex;
+    gap: 2px;
+}
+
+.rating-stars .star {
+    font-size: 16px;
+    color: #444;
+    cursor: pointer;
+    transition: color 0.15s;
+    line-height: 1;
+}
+
+.rating-stars .star.filled {
+    color: var(--pacman-yellow);
+    text-shadow: 0 0 3px var(--ghost-orange);
+}
+
+.rating-stars .star:hover,
+.rating-stars .star:hover ~ .star {
+    /* On hover, all stars to the right of (and including) the hovered one
+       stay un-highlighted so the user can preview their rating. */
+    color: #444;
+}
+
+.rating-stars:hover .star {
+    color: var(--pacman-yellow);
+}
+
+.rating-stars .star:hover ~ .star {
+    color: #444;
+}
+
+.rating-summary {
     font-size: 7px;
     color: var(--ghost-cyan);
 }
@@ -795,6 +873,259 @@ input[type="range"]::-moz-range-thumb {
 .game-overlay-subtitle {
     font-size: 10px;
     color: var(--ghost-cyan);
+}
+
+/* ============ PLAY MODE: CONTROL PANELS ============ */
+/* The play tab below the canvas has three control groups:
+     1. .game-actions       — primary game controls (Restart / Pause)
+     2. .play-control-grid  — two-column layout holding the panels below:
+        a. .ctrl-panel--recording — quick + trajectory recording workflows
+        b. .ctrl-panel--ai        — Ghost AI + Pac-Man AI + live stats     */
+
+.game-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 18px;
+    flex-wrap: wrap;
+}
+
+/* Two-column grid — both panels stretch to the same height automatically. */
+.play-control-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 20px;
+    align-items: stretch;
+}
+@media (max-width: 1180px) {
+    .play-control-grid { grid-template-columns: 1fr; }
+}
+
+.ctrl-panel {
+    padding: 18px 20px 16px;
+    border: 2px solid var(--wall-blue);
+    border-radius: 10px;
+    background: rgba(33, 33, 222, 0.08);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Subtle top-edge glow bar */
+.ctrl-panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 10px 10px 0 0;
+    background: currentColor;
+    opacity: 0.5;
+}
+
+.ctrl-panel--recording {
+    border-color: var(--ghost-orange);
+    background: linear-gradient(160deg, rgba(255, 184, 82, 0.09) 0%, rgba(0,0,0,0) 60%);
+    box-shadow: inset 0 0 40px rgba(255, 184, 82, 0.04), 0 0 0 1px rgba(255, 184, 82, 0.15);
+    color: var(--ghost-orange);
+}
+
+.ctrl-panel--ai {
+    border-color: var(--ghost-cyan);
+    background: linear-gradient(160deg, rgba(0, 255, 255, 0.07) 0%, rgba(0,0,0,0) 60%);
+    box-shadow: inset 0 0 40px rgba(0, 255, 255, 0.03), 0 0 0 1px rgba(0, 255, 255, 0.12);
+    color: var(--ghost-cyan);
+}
+
+.ctrl-panel__title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    text-align: center;
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid currentColor;
+    opacity: 0.85;
+    text-transform: uppercase;
+}
+.ctrl-panel--recording .ctrl-panel__title { color: var(--ghost-orange); }
+.ctrl-panel--ai        .ctrl-panel__title { color: var(--ghost-cyan); }
+
+/* A row = a left-aligned label + a flex-or-grid cluster of buttons */
+.ctrl-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.ctrl-row__label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: var(--text-muted);
+    width: 82px;
+    flex-shrink: 0;
+    text-align: right;
+    letter-spacing: 0.5px;
+    line-height: 1.4;
+}
+.ctrl-row__label--ghost  { color: var(--wall-highlight); }
+.ctrl-row__label--pacman { color: var(--pacman-yellow); }
+
+.ctrl-row__btns {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    flex: 1;
+    min-width: 0;
+}
+
+/* Equal-width variant: every button in the row is the same width. The
+   minmax(0, 1fr) basis lets long labels shrink instead of forcing the
+   row to wrap (which is what produced the messy "DL W/ GHOSTS alone on a
+   line" before). */
+.ctrl-row__btns--equal {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    gap: 6px;
+}
+
+/* Tighter button styling inside an equal-width row so labels still fit. */
+.ctrl-row__btns--equal > .btn,
+.ctrl-row__btns--equal > .algo-btn {
+    padding: 9px 6px;
+    font-size: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+/* Recording panel buttons: orange accent on hover / active */
+.ctrl-panel--recording .ctrl-row__btns--equal > .btn:hover {
+    border-color: var(--ghost-orange);
+    box-shadow: 0 0 6px rgba(255, 184, 82, 0.4);
+}
+
+/* Visual divider between the Ghost AI and Pac-Man AI sub-sections */
+.ai-section + .ai-section {
+    margin-top: 10px;
+    padding-top: 14px;
+    border-top: 1px dashed rgba(0, 255, 255, 0.18);
+}
+
+/* Recording panel sub-sections */
+.rec-section + .rec-section {
+    margin-top: 10px;
+    padding-top: 14px;
+    border-top: 1px dashed rgba(255, 184, 82, 0.2);
+}
+
+/* Section sub-labels above each ai-section row group */
+.ai-section__heading {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    letter-spacing: 1.5px;
+    margin-bottom: 10px;
+    opacity: 0.6;
+    text-transform: uppercase;
+}
+.ai-section__heading--ghost  { color: var(--wall-highlight); }
+.ai-section__heading--pacman { color: var(--pacman-yellow); }
+
+/* Description / status / stats lines */
+.ctrl-panel__desc,
+.ctrl-panel__status,
+.ctrl-panel__stats {
+    font-size: 8px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    text-align: center;
+}
+
+.ctrl-panel__desc {
+    margin: 6px 0 4px;
+    padding: 0 4px;
+}
+
+.ctrl-panel__status {
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px dashed rgba(255, 184, 82, 0.2);
+}
+
+.ctrl-panel__stats {
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px dashed rgba(0, 255, 255, 0.2);
+    font-family: monospace;
+    color: var(--ghost-cyan);
+}
+
+/* Algorithm selector buttons */
+.algo-btn {
+    padding: 9px 8px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    border: 1px solid var(--wall-highlight);
+    background: rgba(82, 82, 255, 0.06);
+    color: var(--wall-highlight);
+    cursor: pointer;
+    transition: background 0.12s, box-shadow 0.12s, border-color 0.12s;
+    border-radius: 4px;
+}
+.algo-btn:hover {
+    background: rgba(82, 82, 255, 0.22);
+    box-shadow: 0 0 6px rgba(82, 82, 255, 0.4);
+}
+.algo-btn.algo-active {
+    background: rgba(82, 82, 255, 0.35);
+    border-color: var(--wall-highlight);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(82, 82, 255, 0.7);
+}
+
+/* Pac-Man AI variant */
+.algo-btn.pacai-btn {
+    border-color: var(--pacman-yellow);
+    background: rgba(255, 255, 0, 0.04);
+    color: var(--pacman-yellow);
+}
+.algo-btn.pacai-btn:hover {
+    background: rgba(255, 255, 0, 0.18);
+    box-shadow: 0 0 6px rgba(255, 255, 0, 0.35);
+}
+.algo-btn.pacai-btn.algo-active {
+    background: rgba(255, 255, 0, 0.28);
+    border-color: var(--pacman-yellow);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(255, 255, 0, 0.65);
+}
+
+/* Recording-active visual cue: pulsing red glow on the relevant button */
+#recordBtn.recording,
+#recordTrajectoryBtn.recording,
+#saveWithGhostsBtn.recording {
+    animation: rec-pulse 1.2s ease-in-out infinite;
+}
+@keyframes rec-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.6); }
+    50%      { box-shadow: 0 0 12px 2px rgba(255, 68, 68, 0.9); }
+}
+
+/* Narrow viewports: collapse label onto its own line so buttons get full
+   width below the label. */
+@media (max-width: 720px) {
+    .ctrl-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    .ctrl-row__label {
+        width: auto;
+        text-align: left;
+    }
 }
 
 /* ============ SETTINGS ============ */

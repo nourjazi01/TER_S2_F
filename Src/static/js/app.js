@@ -34,7 +34,8 @@ const state = {
     currentTab: 'generate',
     gallery: {
         offset: 0,
-        total: 0
+        total: 0,
+        sort: 'newest'
     },
     game: {
         isPlaying: false,
@@ -373,6 +374,16 @@ function setupGallery() {
     document.getElementById('refreshGalleryBtn')?.addEventListener('click', loadGallery);
     document.getElementById('prevPageBtn')?.addEventListener('click', prevPage);
     document.getElementById('nextPageBtn')?.addEventListener('click', nextPage);
+
+    const sortSelect = document.getElementById('gallerySort');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', () => {
+            state.gallery.sort = sortSelect.value;
+            // Reset pagination when changing sort order so we always start at page 1.
+            state.gallery.offset = 0;
+            loadGallery();
+        });
+    }
 }
 
 async function loadGallery() {
@@ -392,7 +403,7 @@ async function loadGallery() {
             params: {
                 limit: CONFIG.GALLERY_LIMIT,
                 offset: state.gallery.offset,
-                sort: 'newest'
+                sort: state.gallery.sort || 'newest'
             }
         });
 
@@ -416,6 +427,7 @@ async function loadGallery() {
                     <div class="maze-card-name">${escapeHtml(maze.name)}</div>
                     <div class="maze-card-info">${maze.metadata.width} × ${maze.metadata.height}</div>
                     <div class="maze-card-date">${formatDate(maze.created_at)}</div>
+                    ${renderRatingBlock(maze)}
                     <div class="maze-card-actions">
                         <button class="btn btn-secondary" onclick="event.stopPropagation(); loadMazeFromGallery('${maze._id}')">
                             LOAD
@@ -539,6 +551,51 @@ async function loadMazeFromGallery(mazeId) {
     }
 }
 
+// Render a 5-star rating control plus the current average + vote count.
+// Stops click propagation so rating doesn't trigger the card's "load" handler.
+function renderRatingBlock(maze) {
+    const avg = Number(maze.rating_avg || 0);
+    const count = maze.rating_count || 0;
+    const filled = Math.round(avg);
+
+    let stars = '';
+    for (let i = 1; i <= 5; i++) {
+        const cls = i <= filled ? 'star filled' : 'star';
+        stars += `<span class="${cls}" data-value="${i}" onclick="event.stopPropagation(); rateMaze('${maze._id}', ${i})" title="Rate ${i}">★</span>`;
+    }
+
+    const summary = count > 0
+        ? `${avg.toFixed(1)} / 5 (${count})`
+        : 'Not rated';
+
+    return `
+        <div class="maze-card-rating" onclick="event.stopPropagation()">
+            <div class="rating-stars">${stars}</div>
+            <div class="rating-summary">${summary}</div>
+        </div>
+    `;
+}
+
+async function rateMaze(mazeId, rating) {
+    try {
+        const response = await axios.post(`/api/mazes/${mazeId}/rate`, { rating });
+        if (response.data.success) {
+            showNotification(`Rated ${rating}★ — avg ${response.data.rating_avg.toFixed(1)}`, 'success');
+            // Refresh the gallery so the new average is reflected immediately.
+            loadGallery();
+        }
+    } catch (error) {
+        if (error.response?.status === 503) {
+            showNotification('Database not configured', 'error');
+        } else if (error.response?.status === 400) {
+            showNotification('Invalid rating', 'error');
+        } else {
+            showNotification('Rating failed', 'error');
+        }
+        console.error('Rate error:', error);
+    }
+}
+
 async function deleteMaze(mazeId) {
     if (!confirm('Delete this maze?')) return;
 
@@ -639,7 +696,11 @@ function initGame() {
         if (overlay) {
             overlay.classList.remove('hidden');
             if (title) title.textContent = 'GAME OVER';
-            if (subtitle) subtitle.textContent = `Score: ${score} | Level: ${level}`;
+            const caughtAt = gameEngine?.caughtAtStep;
+            const caughtSuffix = (caughtAt !== null && caughtAt !== undefined)
+                ? ` | Caught at step ${caughtAt}`
+                : '';
+            if (subtitle) subtitle.textContent = `Score: ${score} | Level: ${level}${caughtSuffix}`;
         }
 
         // Stop recording if active
@@ -656,10 +717,25 @@ function initGame() {
         }, 2000);
     };
 
+    gameEngine.onStepCountChange = (steps) => {
+        const el = document.getElementById('gameSteps');
+        if (el) el.textContent = steps;
+    };
+
+    gameEngine.onPacmanCaught = (steps, timeMs) => {
+        const el = document.getElementById('gameCaughtAt');
+        if (el) el.textContent = steps;
+        showNotification(`Caught at step ${steps} (${(timeMs / 1000).toFixed(1)}s)`, 'error');
+    };
+
     // Reset game state
     state.game.score = 0;
     state.game.lives = 3;
     state.game.isPlaying = false;
+    const stepsEl = document.getElementById('gameSteps');
+    if (stepsEl) stepsEl.textContent = '0';
+    const caughtEl = document.getElementById('gameCaughtAt');
+    if (caughtEl) caughtEl.textContent = '--';
 
     updateGameStats();
 
@@ -1092,7 +1168,11 @@ function wireGameEngineCallbacks() {
         if (overlay) {
             overlay.classList.remove('hidden');
             if (title) title.textContent = 'GAME OVER';
-            if (subtitle) subtitle.textContent = `Score: ${score} | Level: ${level}`;
+            const caughtAt = gameEngine?.caughtAtStep;
+            const caughtSuffix = (caughtAt !== null && caughtAt !== undefined)
+                ? ` | Caught at step ${caughtAt}`
+                : '';
+            if (subtitle) subtitle.textContent = `Score: ${score} | Level: ${level}${caughtSuffix}`;
         }
         // Auto-finalize a save-with-ghosts capture on death
         if (isSavingWithGhosts && gameEngine && gameEngine.isRecording) {
@@ -1107,6 +1187,15 @@ function wireGameEngineCallbacks() {
     gameEngine.onLevelComplete = (level, score) => {
         showNotification(`Level ${level} Complete! Score: ${score}`, 'success');
         setTimeout(() => gameEngine && gameEngine.nextLevel(), 2000);
+    };
+    gameEngine.onStepCountChange = (steps) => {
+        const el = document.getElementById('gameSteps');
+        if (el) el.textContent = steps;
+    };
+    gameEngine.onPacmanCaught = (steps, timeMs) => {
+        const el = document.getElementById('gameCaughtAt');
+        if (el) el.textContent = steps;
+        showNotification(`Caught at step ${steps} (${(timeMs / 1000).toFixed(1)}s)`, 'error');
     };
 }
 
@@ -1170,23 +1259,75 @@ const algorithmDescriptions = {
     'ASTAR': '<strong style="color: #00ffff;">A* (A-Star):</strong> Uses heuristic (Manhattan distance) to guide search. f(n) = g(n) + h(n). Optimal AND efficient - best of both worlds. Time: O(E log V)'
 };
 
+// Map of ghost-AI keys to their corresponding button IDs in the DOM.
+const ALGO_BUTTON_IDS = {
+    'GREEDY': 'algoGreedy',
+    'BFS': 'algoBFS',
+    'ASTAR': 'algoAStar'
+};
+
+// ============ PAC-MAN SELF-PLAY AI ============
+// `OFF` keeps the keyboard in control; the others drive Pac-Man with an
+// adversarial-search policy. Stored on `window.PACMAN_AI` so the game engine
+// can read it cheaply each frame.
+window.PACMAN_AI = window.PACMAN_AI || 'OFF';
+
+const PACMAN_AI_DESCRIPTIONS = {
+    'OFF': 'Manual: Pac-Man is controlled with the keyboard. When an AI is selected, Pac-Man plays alone — keyboard input is ignored, and the chosen adversarial algorithm picks each move.',
+    'MINIMAX': '<strong style="color: #ff66ff;">MINIMAX:</strong> Pac-Man is MAX, the closest active ghost is MIN. Both play rationally over a 3-ply look-ahead. Pac-Man maximises (distance to ghost) − (distance to nearest pellet). Time: O(b^d).',
+    'ALPHABETA': '<strong style="color: #ffff66;">ALPHA-BETA:</strong> Same play as Minimax but with α-β pruning. Skips branches that can\'t affect the final decision; in practice cuts ~60-70% of nodes vs Minimax.',
+    'EXPECTIMAX': '<strong style="color: #66ffff;">EXPECTIMAX:</strong> Pac-Man is MAX; the ghost is a CHANCE node (assumed to move uniformly at random). Useful when the ghost\'s policy is non-rational or unknown — frightened ghosts are always treated this way.'
+};
+
+const PACMAN_AI_BUTTON_IDS = {
+    'OFF': 'pacAIOff',
+    'MINIMAX': 'pacAIMINIMAX',
+    'ALPHABETA': 'pacAIALPHABETA',
+    'EXPECTIMAX': 'pacAIEXPECTIMAX'
+};
+
+function setPacmanAI(algo) {
+    if (!PACMAN_AI_BUTTON_IDS[algo]) return;
+    window.PACMAN_AI = algo;
+
+    // Update button styles
+    document.querySelectorAll('.pacai-btn').forEach(btn => btn.classList.remove('algo-active'));
+    document.getElementById(PACMAN_AI_BUTTON_IDS[algo])?.classList.add('algo-active');
+
+    // Update description
+    const descEl = document.getElementById('pacAIDescription');
+    if (descEl) descEl.innerHTML = PACMAN_AI_DESCRIPTIONS[algo];
+
+    // Reset stats so we can compare cleanly across algorithms
+    if (typeof AlgorithmStats !== 'undefined' && algo !== 'OFF') {
+        AlgorithmStats.reset();
+    }
+
+    if (algo === 'OFF') {
+        showNotification('Manual mode — use the keyboard', 'success');
+    } else {
+        showNotification(`Pac-Man AI: ${algo} — keyboard disabled`, 'success');
+    }
+    console.log(`🟡 Pac-Man self-play AI: ${algo}`);
+}
+
 function setAlgorithm(algo) {
     currentAlgorithm = algo;
-    
+
     // Update the global variable in game-engine.js
     if (typeof window.PATHFINDING_ALGORITHM !== 'undefined') {
         window.PATHFINDING_ALGORITHM = algo;
     }
-    
+
     // Update button styles
     document.querySelectorAll('.algo-btn').forEach(btn => {
         btn.classList.remove('algo-active');
     });
-    
-    const activeBtn = document.getElementById('algo' + algo.charAt(0) + algo.slice(1).toLowerCase().replace('star', 'Star'));
-    if (algo === 'GREEDY') document.getElementById('algoGreedy').classList.add('algo-active');
-    if (algo === 'BFS') document.getElementById('algoBFS').classList.add('algo-active');
-    if (algo === 'ASTAR') document.getElementById('algoAStar').classList.add('algo-active');
+
+    const activeBtnId = ALGO_BUTTON_IDS[algo];
+    if (activeBtnId) {
+        document.getElementById(activeBtnId)?.classList.add('algo-active');
+    }
     
     // Update description
     const descEl = document.getElementById('algoDescription');
@@ -1211,28 +1352,36 @@ function setAlgorithm(algo) {
 function updateAlgorithmStats() {
     const statsEl = document.getElementById('algoStats');
     if (!statsEl) return;
-    
+
     if (typeof AlgorithmStats === 'undefined') {
         statsEl.textContent = 'Stats not available';
         return;
     }
-    
-    const stats = AlgorithmStats[currentAlgorithm.toLowerCase()];
+
+    // When Pac-Man self-play AI is on we surface its bucket; otherwise the
+    // ghost-pathfinding bucket (current behaviour).
+    const pacAI = window.PACMAN_AI;
+    const showPacAI = pacAI && pacAI !== 'OFF';
+    const activeKey = showPacAI ? pacAI.toLowerCase() : currentAlgorithm.toLowerCase();
+    const activeLabel = showPacAI ? `Pac-Man AI · ${pacAI}` : `Ghost AI · ${currentAlgorithm}`;
+    const stats = AlgorithmStats[activeKey];
+
     if (!stats || stats.totalCalls === 0) {
-        statsEl.innerHTML = `<span style="color: #888;">Waiting for data... Play the game to see ${currentAlgorithm} performance stats.</span>`;
+        statsEl.innerHTML = `<span style="color: #888;">Waiting for data... Play the game to see ${activeLabel} performance stats.</span>`;
         return;
     }
-    
+
     const avgNodes = (stats.totalNodesExplored / stats.totalCalls).toFixed(1);
     const avgPath = stats.pathsFound > 0 ? (stats.totalPathLength / stats.pathsFound).toFixed(1) : 0;
     const avgTime = (stats.totalTimeMs / stats.totalCalls).toFixed(4);
     const successRate = ((stats.pathsFound / stats.totalCalls) * 100).toFixed(0);
-    
+
     statsEl.innerHTML = `
-        <span style="color: #ffff00;">Calls:</span> ${stats.totalCalls} | 
-        <span style="color: #00ff00;">Avg Nodes:</span> ${avgNodes} | 
-        <span style="color: #00ffff;">Avg Path:</span> ${avgPath} | 
-        <span style="color: #ff00ff;">Avg Time:</span> ${avgTime}ms | 
+        <span style="color: #ffff66;">${activeLabel}</span> &nbsp;|&nbsp;
+        <span style="color: #ffff00;">Calls:</span> ${stats.totalCalls} |
+        <span style="color: #00ff00;">Avg Nodes:</span> ${avgNodes} |
+        <span style="color: #00ffff;">Avg Path:</span> ${avgPath} |
+        <span style="color: #ff00ff;">Avg Time:</span> ${avgTime}ms |
         <span style="color: #ff6600;">Success:</span> ${successRate}%
     `;
 }
@@ -1243,6 +1392,8 @@ setInterval(updateAlgorithmStats, 2000);
 // ============ EXPORT FOR GLOBAL ACCESS ============
 window.loadMazeFromGallery = loadMazeFromGallery;
 window.deleteMaze = deleteMaze;
+window.rateMaze = rateMaze;
+window.setPacmanAI = setPacmanAI;
 window.startGame = startGame;
 window.pauseGame = pauseGame;
 window.restartGame = restartGame;
