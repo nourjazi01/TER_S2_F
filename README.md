@@ -15,12 +15,12 @@ A Pac-Man game built as an academic research project (TER). Generate mazes, play
 
 ## What it does
 
-- **Maze generation** — braid mazes with no dead ends, guaranteed connectivity, tunable cycle density
-- **Pac-Man game** — full canvas game with lives, scoring, power pellets, bonus fruit, and all four ghost personalities (Blinky, Pinky, Inky, Clyde)
-- **Ghost AI** — switch between Greedy, BFS, and A* live during gameplay; stats update in real time
-- **Pac-Man self-play** — let Pac-Man play itself using Minimax, Alpha-Beta pruning, or Expectimax
-- **Recording & replay** — record a path, replay it with ghosts, export as JSON
-- **Gallery** — save mazes to MongoDB, browse and rate them
+- **Maze generation** - braid mazes with no dead ends, guaranteed connectivity, tunable cycle density
+- **Pac-Man game** - full canvas game with lives, scoring, power pellets, bonus fruit, and all four ghost personalities (Blinky, Pinky, Inky, Clyde)
+- **Ghost AI** - switch between Greedy, BFS, and A* live during gameplay; stats update in real time
+- **Pac-Man self-play** - let Pac-Man play itself using Minimax, Alpha-Beta pruning, or Expectimax
+- **Recording & replay** - record a path, replay it with ghosts, export as JSON
+- **Gallery** - save mazes to MongoDB, browse and rate them
 
 ---
 
