@@ -45,40 +45,40 @@ Then open http://localhost:5000.
 
 ## Project phases
 
-### Phase 1 — Maze generation
+### Phase 1 - Maze generation
 - Braid maze algorithm (no dead ends, multiple cycles)
 - Full graph connectivity guaranteed
 - Configurable parameters: size, playability, cycle intensity
 - REST API to generate and retrieve mazes (JSON)
 - Basic test suite and CI/CD setup
 
-### Phase 2 — Web interface & tests
+### Phase 2 - Web interface & tests
 - Flask backend with REST API
 - HTML5 Canvas frontend
 - MongoDB integration for saving mazes (gallery)
 - 51 automated tests (functional, API, maze quality, E2E)
 - GitHub Actions pipeline → auto-deploy to Render
 
-### Phase 3 — Pac-Man game & ghost AI
+### Phase 3 - Pac-Man game & ghost AI
 - Full Pac-Man game engine (lives, score, power pellets, frightened mode)
 - Four ghost personalities: Blinky (direct chase), Pinky (ambush), Inky (flanking), Clyde (chase/flee)
 - Three ghost pathfinding algorithms switchable live during gameplay:
-  - **Greedy** — picks the direction that minimizes distance, O(1)
-  - **BFS** — guarantees shortest path, O(V+E)
-  - **A\*** — BFS + Manhattan heuristic, faster and still optimal
+  - **Greedy** - picks the direction that minimizes distance, O(1)
+  - **BFS** - guarantees shortest path, O(V+E)
+  - **A\*** - BFS + Manhattan heuristic, faster and still optimal
 - Real-time stats per algorithm (calls, nodes explored, avg path length, avg time)
 - Trajectory recording and replay system
 
-### Phase 4 — Pac-Man self-play AI & polish
+### Phase 4 - Pac-Man self-play AI & polish
 - **Adversarial search for Pac-Man** (not ghosts): Minimax, Alpha-Beta pruning, Expectimax
   - Ghost layer = MIN node (CHANCE node for Expectimax)
   - Pellets simulated with make/unmake so the search tree reflects actual board state
   - Recent-cell FIFO prevents oscillation loops; reversal penalty for stability
   - Alpha-Beta verified identical to Minimax results with ~66% node reduction
-- **Third pellet type** — bonus fruit with deterministic placement per maze
-- **Maze rating system** — users can rate saved mazes 1–5 stars, gallery sortable by rating
-- **Caught-step counter** — tracks at which step Pac-Man was caught
-- **UI overhaul** — two equal-height control panels side by side (Recording & Playback / AI Configuration), arcade-style glow accents, section headings, responsive layout
+- **Third pellet type** - bonus fruit with deterministic placement per maze
+- **Maze rating system** - users can rate saved mazes 1-5 stars, gallery sortable by rating
+- **Caught-step counter** - tracks at which step Pac-Man was caught
+- **UI overhaul** - two equal-height control panels side by side (Recording & Playback / AI Configuration), arcade-style glow accents, section headings, responsive layout
 
 ---
 
