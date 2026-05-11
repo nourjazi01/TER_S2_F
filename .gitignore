@@ -63,5 +63,3 @@ Src/maze_ascii.txt
 *.tmp
 *.bak
 
-# Large files (use Git LFS if needed)
-Presentations + Rapport/*.pdf
