@@ -62,3 +62,8 @@ Src/maze_ascii.txt
 # Temporary files
 *.tmp
 *.bak
+
+# Large files (use Git LFS if needed)
+*.pdf
+Presentations + Rapport/
+!Presentations + Rapport/*.md
